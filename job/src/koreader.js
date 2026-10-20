@@ -67,7 +67,7 @@ export function reading(db, span, nowMs) {
       status,
       progress: Math.round(progress * 100) / 100,
       lastRead: last,
-      finished: finished ? local(last).date : null,
+      finished: finished ? local(b.stats.find((s) => s.page / b.pages >= FINISHED).start).date : null,
       stats: b.stats,
     });
   }

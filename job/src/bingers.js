@@ -10,11 +10,18 @@ const API = 'https://api.bingers.app/v1';
 const EPISODE_MINUTES = 45; // used only when Bingers sends no runtime
 const MOVIE_MINUTES = 110;
 
+// Retry-After is either seconds or an HTTP date; wait 5 s when it is missing, never over a minute.
+function retryAfter(value) {
+  const secs = Number(value);
+  const ms = value && Number.isFinite(secs) ? secs * 1000 : value ? Date.parse(value) - Date.now() : NaN;
+  return Math.min(60000, Math.max(0, Number.isFinite(ms) ? ms : 5000));
+}
+
 export async function get(path, env) {
   for (let attempt = 0; attempt < 3; attempt++) {
     const res = await fetch(API + path, { headers: { Authorization: `Bearer ${env.BINGERS_TOKEN}`, Accept: 'application/json' } });
     if (res.status === 429) {
-      await new Promise((r) => setTimeout(r, 1000 * Number(res.headers.get('retry-after') || 5)));
+      await new Promise((r) => setTimeout(r, retryAfter(res.headers.get('retry-after'))));
       continue;
     }
     if (!res.ok) throw new Error(`Bingers ${path.split('?')[0]} answered ${res.status}`);

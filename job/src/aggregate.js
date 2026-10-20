@@ -21,11 +21,16 @@ export function minutesPerDay(sessions, span) {
   return out.map((m) => Math.round(m));
 }
 
-// Whether a session falls inside the last n days (or anywhere this year when n is null).
+// Whether a session falls inside the last n days up to today (or anywhere this year
+// when n is null). The last n days can reach back into last year in early January.
 export function inPeriod(startMs, span, n) {
-  const i = dayIndex(local(startMs).date, span.year);
-  if (i < 0 || i >= span.days) return false;
-  return n == null ? true : i >= span.days - n;
+  const date = local(startMs).date;
+  if (n == null) {
+    const i = dayIndex(date, span.year);
+    return i >= 0 && i < span.days;
+  }
+  const back = Math.round((Date.parse(span.today) - Date.parse(date)) / 86400000);
+  return back >= 0 && back < n;
 }
 
 // Weekday x hour grid, scaled so the busiest cell is 1.

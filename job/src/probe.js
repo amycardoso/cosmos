@@ -30,13 +30,17 @@ async function tryRun(name, fn) {
 await tryRun('koreader', async () => {
   if (!env.WEBDAV_URL) return console.log('koreader: no credentials');
   const db = await openStatistics(await fetchStatistics(env));
-  for (const t of ['book', 'page_stat_data']) console.log(`koreader ${t}: ${db.exec(`PRAGMA table_info(${t})`)[0].values.map((v) => v[1]).join(', ')}`);
+  for (const t of ['book', 'page_stat_data']) {
+    const info = db.exec(`PRAGMA table_info(${t})`)[0];
+    console.log(`koreader ${t}: ${info ? info.values.map((v) => v[1]).join(', ') : 'table missing'}`);
+  }
 });
 
 await tryRun('spotify', async () => {
   if (!env.SPOTIFY_REFRESH_TOKEN) return console.log('spotify: no credentials');
   const access = await token(env);
   const res = await fetch('https://api.spotify.com/v1/me/player/recently-played?limit=1', { headers: { Authorization: `Bearer ${access}` } });
+  if (!res.ok) throw new Error(`recently-played answered ${res.status}`);
   show('spotify recently-played', await res.json());
 });
 

@@ -249,8 +249,9 @@
       const n = f.mins.length;
       const read = f.mins.filter((m) => m != null);
       if (!read.length) return;
-      const max = Math.max(1, ...read);
-      const hot = f.mins.indexOf(max);
+      const peak = Math.max(...read);
+      const hot = f.mins.indexOf(peak);
+      const max = Math.max(1, peak); // only for the colour scale
       const svg = el('svg:svg', { viewBox: `0 0 ${n} 22`, preserveAspectRatio: 'none', 'aria-hidden': 'true' });
       svg.append(el('svg:rect', { x: 0, y: 7.5, width: n, height: 1, fill: 'rgba(237,241,250,.12)' }));
       f.mins.forEach((m, i) => {
@@ -264,7 +265,7 @@
         el('b', { text: f.title }),
         el('span', { class: 'meta', text: `${num(f.hours, 1)} h · ${f.pages} p.` }),
         svg,
-        el('span', { class: 'note', text: `demorei nas p. ${hot * 10 + 1}–${hot * 10 + 10} (${max} min)${where}${rr}` }),
+        el('span', { class: 'note', text: `demorei nas p. ${hot * 10 + 1}–${hot * 10 + 10} (${peak} min)${where}${rr}` }),
       ]));
     });
   }
@@ -313,7 +314,7 @@
   // ---------- Screens ----------
   function renderShows() {
     const host = $('[data-shows]');
-    const label = { watch_next: (s) => `próximo: ${s.next}`, collecting_dust: () => 'pegando poeira', caught_up: () => 'em dia', stopped: () => 'desisti' };
+    const label = { watch_next: (s) => (s.next ? `próximo: ${s.next}` : 'temporada vista'), collecting_dust: () => 'pegando poeira', caught_up: () => 'em dia', stopped: () => 'desisti' };
     const open = D.shows.filter((s) => label[s.status]);
     if (!open.length) emptyNote(host, 'Nenhuma série em andamento.');
     open.forEach((s) => {

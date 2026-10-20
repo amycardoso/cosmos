@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { local, dayIndex, localIso } from '../src/time.js';
-import { yearSpan, minutesPerDay, clock } from '../src/aggregate.js';
+import { yearSpan, minutesPerDay, clock, inPeriod } from '../src/aggregate.js';
 import { reading } from '../src/koreader.js';
 import { toPlay, mergeHistory, music } from '../src/spotify.js';
 import { normEntry, screens } from '../src/bingers.js';
@@ -12,7 +12,7 @@ const NOW = Date.parse('2026-10-20T01:30:00Z'); // 19 Oct, 22h30 in São Paulo
 const span = yearSpan(NOW);
 
 test('days and hours are counted in São Paulo time', () => {
-  assert.deepEqual(local(Date.parse('2026-10-20T01:30:00Z')), { date: '2026-10-19', hour: 22, dow: 1 });
+  assert.deepEqual(local(Date.parse('2026-10-20T01:30:00Z')), { date: '2026-10-19', hour: 22, minute: 30, dow: 1 });
   assert.equal(span.year, 2026);
   assert.equal(span.days, dayIndex('2026-10-19', 2026) + 1);
   assert.equal(localIso(NOW), '2026-10-19T22:30:00-03:00');
@@ -33,7 +33,7 @@ test('reading: books, status, progress, library and fingerprints', async () => {
   assert.equal(byTitle['A Hora da Estrela'].progress, 0.63);
   assert.equal(byTitle['A Hora da Estrela'].lang, 'pt');
   assert.equal(byTitle['Piranesi'].status, 'lido');
-  assert.equal(byTitle['Piranesi'].finished, '2026-03-20');
+  assert.equal(byTitle['Piranesi'].finished, '2026-03-10');
   assert.equal(r.readingDays.length, span.days);
   assert.equal(r.readingDays[dayIndex('2026-10-16', 2026)], 30); // 22h on the 16th local
   assert.equal(r.library.find((b) => b.title === 'Rayuela').status, 'on_hold');
@@ -88,4 +88,17 @@ test('compose pads cached day arrays and survives a missing source', () => {
   assert.deepEqual(d.periods.week.artists, []);
   assert.equal(d.recentTrack, null);
   assert.equal(d.synthetic, false);
+});
+
+test('periods reach back across the new year, the year stays this year', () => {
+  const span = yearSpan(Date.parse('2026-01-03T15:00:00Z'));
+  const dec30 = Date.parse('2025-12-30T15:00:00Z');
+  assert.equal(inPeriod(dec30, span, 7), true);
+  assert.equal(inPeriod(dec30, span, null), false);
+  assert.equal(inPeriod(Date.parse('2025-11-30T15:00:00Z'), span, 30), false);
+  assert.equal(inPeriod(Date.parse('2026-01-03T15:00:00Z'), span, 7), true);
+});
+
+test('local ISO times keep minutes in her timezone', () => {
+  assert.equal(localIso(Date.parse('2026-10-20T01:45:00Z')), '2026-10-19T22:45:00-03:00');
 });
