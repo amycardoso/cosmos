@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-20T00:20:24.396739Z",
+  "title": "Design System: Cosmos de Amélia",
+  "extensions": {
+    "colorMeta": {
+      "space": {
+        "role": "neutral",
+        "displayName": "Space"
+      },
+      "deep": {
+        "role": "neutral",
+        "displayName": "Deep",
+        "purpose": "Zero step of every heat ramp"
+      },
+      "zone": {
+        "role": "neutral",
+        "displayName": "Pale Zone"
+      },
+      "haze": {
+        "role": "neutral",
+        "displayName": "Haze"
+      },
+      "dim": {
+        "role": "neutral",
+        "displayName": "Dim"
+      },
+      "belt-read": {
+        "role": "primary",
+        "displayName": "Pink Belt",
+        "tonalRamp": [
+          "#111019",
+          "#5A4153",
+          "#8B6178",
+          "#C285A0",
+          "#F2A8C7"
+        ]
+      },
+      "belt-music": {
+        "role": "primary",
+        "displayName": "Cyan Belt",
+        "tonalRamp": [
+          "#111019",
+          "#335061",
+          "#4F7A8F",
+          "#6AA6BF",
+          "#84CDEE"
+        ]
+      },
+      "belt-screen": {
+        "role": "primary",
+        "displayName": "Lavender Belt",
+        "tonalRamp": [
+          "#111019",
+          "#4A4459",
+          "#6A5F86",
+          "#9183BB",
+          "#B5A2EC"
+        ]
+      },
+      "pole": {
+        "role": "tertiary",
+        "displayName": "Polar Rust"
+      },
+      "spot": {
+        "role": "tertiary",
+        "displayName": "Spot Blue",
+        "purpose": "Today only"
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Period title"
+      },
+      "headline": {
+        "displayName": "Section",
+        "purpose": "Leitura, Música, Telas in their belt colour"
+      },
+      "title": {
+        "displayName": "Figure title",
+        "purpose": "First-person figure titles"
+      },
+      "body": {
+        "displayName": "Body"
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Axes, values, ranks"
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "belt-fill",
+        "value": "opacity .25 to 1, 520ms, cubic-bezier(.16,1,.3,1), delay by column up to 360ms",
+        "purpose": "Day belts on period change; skipped under prefers-reduced-motion"
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "stack",
+        "value": "1100px"
+      },
+      {
+        "name": "phone",
+        "value": "640px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Period control",
+      "kind": "custom",
+      "refersTo": "period-control",
+      "description": "Pill radiogroup for semana, mês, ano.",
+      "html": "<div class=\"ds-period\" role=\"radiogroup\"><button role=\"radio\" aria-checked=\"false\">semana</button><button role=\"radio\" aria-checked=\"false\">mês</button><button role=\"radio\" aria-checked=\"true\">ano</button></div>",
+      "css": ".ds-period{display:inline-flex;gap:2px;padding:3px;border:1px solid rgba(237,241,250,.1);border-radius:999px;background:#08080C;font-family:Hanken,system-ui,sans-serif}.ds-period button{background:none;border:0;padding:6px 14px;border-radius:999px;font-size:14px;color:#B7B9D2}.ds-period button[aria-checked=true]{background:#EDF1FA;color:#08080C;font-weight:600}"
+    },
+    {
+      "name": "Ranked row",
+      "kind": "custom",
+      "description": "Rank, name, belt bar, value.",
+      "html": "<ol class=\"ds-rank\"><li><span>1</span><span>Milton Nascimento</span><i style=\"width:100%\"></i><span>61 h</span></li><li><span>2</span><span>Gal Costa</span><i style=\"width:62%\"></i><span>38 h</span></li></ol>",
+      "css": ".ds-rank{list-style:none;margin:0;padding:0;background:#08080C;color:#EDF1FA;font:15px Hanken,system-ui,sans-serif;--c:#84CDEE}.ds-rank li{display:grid;grid-template-columns:28px 150px 1fr 52px;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(237,241,250,.1)}.ds-rank li span:first-child{color:#7D7F9C;font-size:13px}.ds-rank i{height:8px;border-radius:4px;background:var(--c)}.ds-rank li span:last-child{color:#B7B9D2;font-size:13px;text-align:right}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Atmosphere of the Year",
+    "overview": "Jupiter in ultraviolet: a black field crossed by pink, cyan and lavender belts, one per habit, read day by day, with the Reading Atlas grids repeated for all three streams. The photograph stays small; the data is the picture.",
+    "keyCharacteristics": [
+      "Black ground, pale-zone text",
+      "Three belt colours with equal standing",
+      "Quartile heat ramps",
+      "Same views for every stream",
+      "No cards, glows or full-bleed imagery"
+    ],
+    "rules": [
+      {
+        "name": "The Equal Belts Rule",
+        "body": "Reading, music and screens always get the same view types and weight.",
+        "section": "colors"
+      },
+      {
+        "name": "The Quartile Rule",
+        "body": "Heat steps come from quartiles of her own non-zero history.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Spot Rule",
+        "body": "Spot blue marks today and only today.",
+        "section": "colors"
+      }
+    ],
+    "dos": [
+      "Keep the data at the centre",
+      "Give the three streams the same views",
+      "Label sample data"
+    ],
+    "donts": [
+      "Cards, glows, gradient text, full-bleed imagery",
+      "Coloured side stripes on list items",
+      "Truncated book titles",
+      "Spot blue for anything but today"
+    ]
+  }
+}

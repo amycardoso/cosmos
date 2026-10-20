@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#08080C">
+<title>Cosmos · Amélia</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip" href="#leitura">Pular para a leitura</a>
+
+<header class="top">
+  <a class="brand" href="#" aria-label="Cosmos de Amélia, início"><img src="img/jupiter.jpg" alt="" width="40" height="40">Amélia</a>
+  <nav class="sections" aria-label="Seções">
+    <a href="#leitura"><i class="sw sw--read" aria-hidden="true"></i>Leitura</a>
+    <a href="#musica"><i class="sw sw--music" aria-hidden="true"></i>Música</a>
+    <a href="#telas"><i class="sw sw--screen" aria-hidden="true"></i>Telas</a>
+  </nav>
+  <div class="period" role="radiogroup" aria-label="Período">
+    <button role="radio" data-period="week">semana</button>
+    <button role="radio" data-period="month">mês</button>
+    <button role="radio" data-period="year">ano</button>
+  </div>
+</header>
+
+<main>
+  <section class="overview" aria-labelledby="ov-title">
+    <div class="overview__main">
+      <h1 id="ov-title" data-title></h1>
+      <p class="overview__lede" data-lede></p>
+      <figure class="bands">
+        <figcaption class="vh">Os três hábitos, dia a dia, em faixas paralelas</figcaption>
+        <div class="bands__months" data-months aria-hidden="true"></div>
+        <div class="band" data-band="read"></div>
+        <div class="band" data-band="music"></div>
+        <div class="band" data-band="screen"></div>
+        <p class="bands__readout" data-readout aria-live="polite"></p>
+      </figure>
+    </div>
+    <aside class="now" aria-label="Agora">
+      <img class="now__planet" src="img/jupiter.jpg" alt="Júpiter em ultravioleta, fotografado pelo Hubble" width="640" height="640">
+      <ul class="now__list" data-now></ul>
+    </aside>
+  </section>
+
+  <section class="stream stream--read" id="leitura" aria-labelledby="h-read">
+    <header class="stream__head"><h2 id="h-read">Leitura</h2><p data-read-line></p></header>
+    <div class="stream__grid">
+      <figure class="fig fig--wide">
+        <figcaption><h3>Quando eu leio</h3><p data-read-peak></p></figcaption>
+        <div class="clock" data-clock="read"></div>
+      </figure>
+      <div class="fig-stack">
+        <figure class="fig">
+          <figcaption><h3>A estante do ano</h3><p>Altura pelas páginas, largura pelas horas. Os abertos ficam à parte, cheios até onde cheguei.</p></figcaption>
+          <div class="shelf" data-shelf></div>
+        </figure>
+        <figure class="fig">
+          <figcaption><h3>A biblioteca por idioma</h3><p data-map-line></p></figcaption>
+          <div class="map" data-map></div>
+          <ul class="key" data-map-key></ul>
+        </figure>
+      </div>
+      <figure class="fig fig--wide">
+        <figcaption><h3>Como cada livro foi lido</h3><p>Uma faixa por livro, um traço a cada dez páginas. Mais claro onde demorei mais; a marca embaixo é releitura.</p></figcaption>
+        <ol class="prints" data-prints></ol>
+      </figure>
+    </div>
+  </section>
+
+  <section class="stream stream--music" id="musica" aria-labelledby="h-music">
+    <header class="stream__head"><h2 id="h-music">Música</h2><p data-music-line></p></header>
+    <div class="stream__grid">
+      <figure class="fig fig--half">
+        <figcaption><h3>Quando eu ouço</h3><p data-music-peak></p></figcaption>
+        <div class="clock" data-clock="music"></div>
+      </figure>
+      <figure class="fig fig--half">
+        <figcaption><h3>Em repetição</h3><p>As faixas que mais toquei no período.</p></figcaption>
+        <ol class="tracks" data-tracks></ol>
+      </figure>
+      <figure class="fig fig--full">
+        <figcaption><h3>Com quem passei o tempo</h3><p>Horas com cada artista no período.</p></figcaption>
+        <ol class="artists" data-artists></ol>
+      </figure>
+    </div>
+  </section>
+
+  <section class="stream stream--screen" id="telas" aria-labelledby="h-screen">
+    <header class="stream__head"><h2 id="h-screen">Telas</h2><p data-screen-line></p></header>
+    <div class="stream__grid">
+      <figure class="fig fig--half">
+        <figcaption><h3>Quando eu assisto</h3><p data-screen-peak></p></figcaption>
+        <div class="clock" data-clock="screen"></div>
+      </figure>
+      <figure class="fig fig--half">
+        <figcaption><h3>Séries em andamento</h3><p>Um traço por episódio da temporada; os acesos já vi.</p></figcaption>
+        <ul class="shows" data-shows></ul>
+      </figure>
+      <figure class="fig fig--half">
+        <figcaption><h3>Como me senti</h3><p>O que marquei depois de cada episódio e filme no período.</p></figcaption>
+        <ul class="feel" data-feelings></ul>
+      </figure>
+      <figure class="fig fig--half">
+        <figcaption><h3>Filmes do ano e a fila</h3></figcaption>
+        <ul class="films" data-films></ul>
+        <ul class="queue" data-queue></ul>
+      </figure>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <p data-updated></p>
+  <p>Dados de exemplo, no formato que o job vai gerar.</p>
+  <p class="credits">Júpiter em ultravioleta, telescópio espacial Hubble: NASA, ESA.</p>
+</footer>
+
+<script src="data/sample.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

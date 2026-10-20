@@ -1,0 +1,1354 @@
+/* stix-two-text-latin-400-italic */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/stix-two-text-latin-400-italic.woff2) format('woff2'), url(fonts/stix-two-text-latin-400-italic.woff) format('woff');
+}/* stix-two-text-latin-400-normal */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/stix-two-text-latin-400-normal.woff2) format('woff2'), url(fonts/stix-two-text-latin-400-normal.woff) format('woff');
+}/* stix-two-text-latin-500-italic */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/stix-two-text-latin-500-italic.woff2) format('woff2'), url(fonts/stix-two-text-latin-500-italic.woff) format('woff');
+}/* stix-two-text-latin-500-normal */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/stix-two-text-latin-500-normal.woff2) format('woff2'), url(fonts/stix-two-text-latin-500-normal.woff) format('woff');
+}/* stix-two-text-latin-600-italic */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/stix-two-text-latin-600-italic.woff2) format('woff2'), url(fonts/stix-two-text-latin-600-italic.woff) format('woff');
+}/* stix-two-text-latin-600-normal */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/stix-two-text-latin-600-normal.woff2) format('woff2'), url(fonts/stix-two-text-latin-600-normal.woff) format('woff');
+}/* stix-two-text-latin-700-italic */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/stix-two-text-latin-700-italic.woff2) format('woff2'), url(fonts/stix-two-text-latin-700-italic.woff) format('woff');
+}/* stix-two-text-latin-700-normal */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/stix-two-text-latin-700-normal.woff2) format('woff2'), url(fonts/stix-two-text-latin-700-normal.woff) format('woff');
+}/* stix-two-text-latin-ext-400-italic */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/stix-two-text-latin-ext-400-italic.woff2) format('woff2'), url(fonts/stix-two-text-latin-ext-400-italic.woff) format('woff');
+}/* stix-two-text-latin-ext-400-normal */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/stix-two-text-latin-ext-400-normal.woff2) format('woff2'), url(fonts/stix-two-text-latin-ext-400-normal.woff) format('woff');
+}/* stix-two-text-latin-ext-500-italic */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/stix-two-text-latin-ext-500-italic.woff2) format('woff2'), url(fonts/stix-two-text-latin-ext-500-italic.woff) format('woff');
+}/* stix-two-text-latin-ext-500-normal */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/stix-two-text-latin-ext-500-normal.woff2) format('woff2'), url(fonts/stix-two-text-latin-ext-500-normal.woff) format('woff');
+}/* stix-two-text-latin-ext-600-italic */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/stix-two-text-latin-ext-600-italic.woff2) format('woff2'), url(fonts/stix-two-text-latin-ext-600-italic.woff) format('woff');
+}/* stix-two-text-latin-ext-600-normal */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/stix-two-text-latin-ext-600-normal.woff2) format('woff2'), url(fonts/stix-two-text-latin-ext-600-normal.woff) format('woff');
+}/* stix-two-text-latin-ext-700-italic */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/stix-two-text-latin-ext-700-italic.woff2) format('woff2'), url(fonts/stix-two-text-latin-ext-700-italic.woff) format('woff');
+}/* stix-two-text-latin-ext-700-normal */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/stix-two-text-latin-ext-700-normal.woff2) format('woff2'), url(fonts/stix-two-text-latin-ext-700-normal.woff) format('woff');
+}/* stix-two-text-latin-ext-400-italic */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/stix-two-text-latin-ext-400-italic.woff2) format('woff2'), url(fonts/stix-two-text-latin-ext-400-italic.woff) format('woff');
+}
+
+/* stix-two-text-latin-ext-500-italic */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/stix-two-text-latin-ext-500-italic.woff2) format('woff2'), url(fonts/stix-two-text-latin-ext-500-italic.woff) format('woff');
+}
+
+/* stix-two-text-latin-ext-600-italic */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/stix-two-text-latin-ext-600-italic.woff2) format('woff2'), url(fonts/stix-two-text-latin-ext-600-italic.woff) format('woff');
+}
+
+/* stix-two-text-latin-ext-700-italic */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/stix-two-text-latin-ext-700-italic.woff2) format('woff2'), url(fonts/stix-two-text-latin-ext-700-italic.woff) format('woff');
+}/* stix-two-text-latin-ext-400-normal */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/stix-two-text-latin-ext-400-normal.woff2) format('woff2'), url(fonts/stix-two-text-latin-ext-400-normal.woff) format('woff');
+}
+
+/* stix-two-text-latin-ext-500-normal */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/stix-two-text-latin-ext-500-normal.woff2) format('woff2'), url(fonts/stix-two-text-latin-ext-500-normal.woff) format('woff');
+}
+
+/* stix-two-text-latin-ext-600-normal */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/stix-two-text-latin-ext-600-normal.woff2) format('woff2'), url(fonts/stix-two-text-latin-ext-600-normal.woff) format('woff');
+}
+
+/* stix-two-text-latin-ext-700-normal */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/stix-two-text-latin-ext-700-normal.woff2) format('woff2'), url(fonts/stix-two-text-latin-ext-700-normal.woff) format('woff');
+}/* stix-two-text-latin-400-italic */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/stix-two-text-latin-400-italic.woff2) format('woff2'), url(fonts/stix-two-text-latin-400-italic.woff) format('woff');
+}
+
+/* stix-two-text-latin-500-italic */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/stix-two-text-latin-500-italic.woff2) format('woff2'), url(fonts/stix-two-text-latin-500-italic.woff) format('woff');
+}
+
+/* stix-two-text-latin-600-italic */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/stix-two-text-latin-600-italic.woff2) format('woff2'), url(fonts/stix-two-text-latin-600-italic.woff) format('woff');
+}
+
+/* stix-two-text-latin-700-italic */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/stix-two-text-latin-700-italic.woff2) format('woff2'), url(fonts/stix-two-text-latin-700-italic.woff) format('woff');
+}/* stix-two-text-latin-ext-400-italic */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/stix-two-text-latin-ext-400-italic.woff2) format('woff2'), url(fonts/stix-two-text-latin-ext-400-italic.woff) format('woff');
+}/* stix-two-text-latin-ext-400-normal */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/stix-two-text-latin-ext-400-normal.woff2) format('woff2'), url(fonts/stix-two-text-latin-ext-400-normal.woff) format('woff');
+}/* stix-two-text-latin-ext-500-italic */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/stix-two-text-latin-ext-500-italic.woff2) format('woff2'), url(fonts/stix-two-text-latin-ext-500-italic.woff) format('woff');
+}/* stix-two-text-latin-ext-500-normal */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/stix-two-text-latin-ext-500-normal.woff2) format('woff2'), url(fonts/stix-two-text-latin-ext-500-normal.woff) format('woff');
+}/* stix-two-text-latin-ext-600-italic */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/stix-two-text-latin-ext-600-italic.woff2) format('woff2'), url(fonts/stix-two-text-latin-ext-600-italic.woff) format('woff');
+}/* stix-two-text-latin-ext-600-normal */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/stix-two-text-latin-ext-600-normal.woff2) format('woff2'), url(fonts/stix-two-text-latin-ext-600-normal.woff) format('woff');
+}/* stix-two-text-latin-ext-700-italic */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/stix-two-text-latin-ext-700-italic.woff2) format('woff2'), url(fonts/stix-two-text-latin-ext-700-italic.woff) format('woff');
+}/* stix-two-text-latin-ext-700-normal */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/stix-two-text-latin-ext-700-normal.woff2) format('woff2'), url(fonts/stix-two-text-latin-ext-700-normal.woff) format('woff');
+}/* stix-two-text-latin-ext-400-italic */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/stix-two-text-latin-ext-400-italic.woff2) format('woff2'), url(fonts/stix-two-text-latin-ext-400-italic.woff) format('woff');
+}
+
+/* stix-two-text-latin-ext-500-italic */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/stix-two-text-latin-ext-500-italic.woff2) format('woff2'), url(fonts/stix-two-text-latin-ext-500-italic.woff) format('woff');
+}
+
+/* stix-two-text-latin-ext-600-italic */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/stix-two-text-latin-ext-600-italic.woff2) format('woff2'), url(fonts/stix-two-text-latin-ext-600-italic.woff) format('woff');
+}
+
+/* stix-two-text-latin-ext-700-italic */
+@font-face {
+  font-family: 'STIX Two Text';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/stix-two-text-latin-ext-700-italic.woff2) format('woff2'), url(fonts/stix-two-text-latin-ext-700-italic.woff) format('woff');
+}/* archivo-narrow-latin-400-italic */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/archivo-narrow-latin-400-italic.woff2) format('woff2'), url(fonts/archivo-narrow-latin-400-italic.woff) format('woff');
+}/* archivo-narrow-latin-400-normal */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/archivo-narrow-latin-400-normal.woff2) format('woff2'), url(fonts/archivo-narrow-latin-400-normal.woff) format('woff');
+}/* archivo-narrow-latin-500-italic */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/archivo-narrow-latin-500-italic.woff2) format('woff2'), url(fonts/archivo-narrow-latin-500-italic.woff) format('woff');
+}/* archivo-narrow-latin-500-normal */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/archivo-narrow-latin-500-normal.woff2) format('woff2'), url(fonts/archivo-narrow-latin-500-normal.woff) format('woff');
+}/* archivo-narrow-latin-600-italic */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/archivo-narrow-latin-600-italic.woff2) format('woff2'), url(fonts/archivo-narrow-latin-600-italic.woff) format('woff');
+}/* archivo-narrow-latin-600-normal */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/archivo-narrow-latin-600-normal.woff2) format('woff2'), url(fonts/archivo-narrow-latin-600-normal.woff) format('woff');
+}/* archivo-narrow-latin-700-italic */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/archivo-narrow-latin-700-italic.woff2) format('woff2'), url(fonts/archivo-narrow-latin-700-italic.woff) format('woff');
+}/* archivo-narrow-latin-700-normal */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/archivo-narrow-latin-700-normal.woff2) format('woff2'), url(fonts/archivo-narrow-latin-700-normal.woff) format('woff');
+}/* archivo-narrow-latin-ext-400-italic */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/archivo-narrow-latin-ext-400-italic.woff2) format('woff2'), url(fonts/archivo-narrow-latin-ext-400-italic.woff) format('woff');
+}/* archivo-narrow-latin-ext-400-normal */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/archivo-narrow-latin-ext-400-normal.woff2) format('woff2'), url(fonts/archivo-narrow-latin-ext-400-normal.woff) format('woff');
+}/* archivo-narrow-latin-ext-500-italic */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/archivo-narrow-latin-ext-500-italic.woff2) format('woff2'), url(fonts/archivo-narrow-latin-ext-500-italic.woff) format('woff');
+}/* archivo-narrow-latin-ext-500-normal */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/archivo-narrow-latin-ext-500-normal.woff2) format('woff2'), url(fonts/archivo-narrow-latin-ext-500-normal.woff) format('woff');
+}/* archivo-narrow-latin-ext-600-italic */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/archivo-narrow-latin-ext-600-italic.woff2) format('woff2'), url(fonts/archivo-narrow-latin-ext-600-italic.woff) format('woff');
+}/* archivo-narrow-latin-ext-600-normal */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/archivo-narrow-latin-ext-600-normal.woff2) format('woff2'), url(fonts/archivo-narrow-latin-ext-600-normal.woff) format('woff');
+}/* archivo-narrow-latin-ext-700-italic */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/archivo-narrow-latin-ext-700-italic.woff2) format('woff2'), url(fonts/archivo-narrow-latin-ext-700-italic.woff) format('woff');
+}/* archivo-narrow-latin-ext-700-normal */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/archivo-narrow-latin-ext-700-normal.woff2) format('woff2'), url(fonts/archivo-narrow-latin-ext-700-normal.woff) format('woff');
+}/* archivo-narrow-latin-ext-400-italic */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/archivo-narrow-latin-ext-400-italic.woff2) format('woff2'), url(fonts/archivo-narrow-latin-ext-400-italic.woff) format('woff');
+}
+
+/* archivo-narrow-latin-ext-500-italic */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/archivo-narrow-latin-ext-500-italic.woff2) format('woff2'), url(fonts/archivo-narrow-latin-ext-500-italic.woff) format('woff');
+}
+
+/* archivo-narrow-latin-ext-600-italic */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/archivo-narrow-latin-ext-600-italic.woff2) format('woff2'), url(fonts/archivo-narrow-latin-ext-600-italic.woff) format('woff');
+}
+
+/* archivo-narrow-latin-ext-700-italic */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/archivo-narrow-latin-ext-700-italic.woff2) format('woff2'), url(fonts/archivo-narrow-latin-ext-700-italic.woff) format('woff');
+}/* archivo-narrow-latin-ext-400-normal */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/archivo-narrow-latin-ext-400-normal.woff2) format('woff2'), url(fonts/archivo-narrow-latin-ext-400-normal.woff) format('woff');
+}
+
+/* archivo-narrow-latin-ext-500-normal */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/archivo-narrow-latin-ext-500-normal.woff2) format('woff2'), url(fonts/archivo-narrow-latin-ext-500-normal.woff) format('woff');
+}
+
+/* archivo-narrow-latin-ext-600-normal */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/archivo-narrow-latin-ext-600-normal.woff2) format('woff2'), url(fonts/archivo-narrow-latin-ext-600-normal.woff) format('woff');
+}
+
+/* archivo-narrow-latin-ext-700-normal */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/archivo-narrow-latin-ext-700-normal.woff2) format('woff2'), url(fonts/archivo-narrow-latin-ext-700-normal.woff) format('woff');
+}/* archivo-narrow-latin-400-italic */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/archivo-narrow-latin-400-italic.woff2) format('woff2'), url(fonts/archivo-narrow-latin-400-italic.woff) format('woff');
+}
+
+/* archivo-narrow-latin-500-italic */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/archivo-narrow-latin-500-italic.woff2) format('woff2'), url(fonts/archivo-narrow-latin-500-italic.woff) format('woff');
+}
+
+/* archivo-narrow-latin-600-italic */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/archivo-narrow-latin-600-italic.woff2) format('woff2'), url(fonts/archivo-narrow-latin-600-italic.woff) format('woff');
+}
+
+/* archivo-narrow-latin-700-italic */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/archivo-narrow-latin-700-italic.woff2) format('woff2'), url(fonts/archivo-narrow-latin-700-italic.woff) format('woff');
+}/* archivo-narrow-latin-ext-400-italic */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/archivo-narrow-latin-ext-400-italic.woff2) format('woff2'), url(fonts/archivo-narrow-latin-ext-400-italic.woff) format('woff');
+}/* archivo-narrow-latin-ext-400-normal */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/archivo-narrow-latin-ext-400-normal.woff2) format('woff2'), url(fonts/archivo-narrow-latin-ext-400-normal.woff) format('woff');
+}/* archivo-narrow-latin-ext-500-italic */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/archivo-narrow-latin-ext-500-italic.woff2) format('woff2'), url(fonts/archivo-narrow-latin-ext-500-italic.woff) format('woff');
+}/* archivo-narrow-latin-ext-500-normal */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/archivo-narrow-latin-ext-500-normal.woff2) format('woff2'), url(fonts/archivo-narrow-latin-ext-500-normal.woff) format('woff');
+}/* archivo-narrow-latin-ext-600-italic */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/archivo-narrow-latin-ext-600-italic.woff2) format('woff2'), url(fonts/archivo-narrow-latin-ext-600-italic.woff) format('woff');
+}/* archivo-narrow-latin-ext-600-normal */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/archivo-narrow-latin-ext-600-normal.woff2) format('woff2'), url(fonts/archivo-narrow-latin-ext-600-normal.woff) format('woff');
+}/* archivo-narrow-latin-ext-700-italic */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/archivo-narrow-latin-ext-700-italic.woff2) format('woff2'), url(fonts/archivo-narrow-latin-ext-700-italic.woff) format('woff');
+}/* archivo-narrow-latin-ext-700-normal */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/archivo-narrow-latin-ext-700-normal.woff2) format('woff2'), url(fonts/archivo-narrow-latin-ext-700-normal.woff) format('woff');
+}/* archivo-narrow-latin-ext-400-italic */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/archivo-narrow-latin-ext-400-italic.woff2) format('woff2'), url(fonts/archivo-narrow-latin-ext-400-italic.woff) format('woff');
+}
+
+/* archivo-narrow-latin-ext-500-italic */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/archivo-narrow-latin-ext-500-italic.woff2) format('woff2'), url(fonts/archivo-narrow-latin-ext-500-italic.woff) format('woff');
+}
+
+/* archivo-narrow-latin-ext-600-italic */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/archivo-narrow-latin-ext-600-italic.woff2) format('woff2'), url(fonts/archivo-narrow-latin-ext-600-italic.woff) format('woff');
+}
+
+/* archivo-narrow-latin-ext-700-italic */
+@font-face {
+  font-family: 'Archivo Narrow';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/archivo-narrow-latin-ext-700-italic.woff2) format('woff2'), url(fonts/archivo-narrow-latin-ext-700-italic.woff) format('woff');
+}/* eb-garamond-latin-400-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/eb-garamond-latin-400-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-400-italic.woff) format('woff');
+}/* eb-garamond-latin-400-normal */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/eb-garamond-latin-400-normal.woff2) format('woff2'), url(fonts/eb-garamond-latin-400-normal.woff) format('woff');
+}/* eb-garamond-latin-500-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/eb-garamond-latin-500-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-500-italic.woff) format('woff');
+}/* eb-garamond-latin-500-normal */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/eb-garamond-latin-500-normal.woff2) format('woff2'), url(fonts/eb-garamond-latin-500-normal.woff) format('woff');
+}/* eb-garamond-latin-600-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/eb-garamond-latin-600-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-600-italic.woff) format('woff');
+}/* eb-garamond-latin-600-normal */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/eb-garamond-latin-600-normal.woff2) format('woff2'), url(fonts/eb-garamond-latin-600-normal.woff) format('woff');
+}/* eb-garamond-latin-700-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/eb-garamond-latin-700-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-700-italic.woff) format('woff');
+}/* eb-garamond-latin-700-normal */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/eb-garamond-latin-700-normal.woff2) format('woff2'), url(fonts/eb-garamond-latin-700-normal.woff) format('woff');
+}/* eb-garamond-latin-800-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 800;
+  src: url(fonts/eb-garamond-latin-800-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-800-italic.woff) format('woff');
+}/* eb-garamond-latin-800-normal */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 800;
+  src: url(fonts/eb-garamond-latin-800-normal.woff2) format('woff2'), url(fonts/eb-garamond-latin-800-normal.woff) format('woff');
+}/* eb-garamond-latin-ext-400-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/eb-garamond-latin-ext-400-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-400-italic.woff) format('woff');
+}/* eb-garamond-latin-ext-400-normal */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/eb-garamond-latin-ext-400-normal.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-400-normal.woff) format('woff');
+}/* eb-garamond-latin-ext-500-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/eb-garamond-latin-ext-500-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-500-italic.woff) format('woff');
+}/* eb-garamond-latin-ext-500-normal */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/eb-garamond-latin-ext-500-normal.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-500-normal.woff) format('woff');
+}/* eb-garamond-latin-ext-600-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/eb-garamond-latin-ext-600-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-600-italic.woff) format('woff');
+}/* eb-garamond-latin-ext-600-normal */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/eb-garamond-latin-ext-600-normal.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-600-normal.woff) format('woff');
+}/* eb-garamond-latin-ext-700-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/eb-garamond-latin-ext-700-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-700-italic.woff) format('woff');
+}/* eb-garamond-latin-ext-700-normal */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/eb-garamond-latin-ext-700-normal.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-700-normal.woff) format('woff');
+}/* eb-garamond-latin-ext-800-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 800;
+  src: url(fonts/eb-garamond-latin-ext-800-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-800-italic.woff) format('woff');
+}/* eb-garamond-latin-ext-800-normal */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 800;
+  src: url(fonts/eb-garamond-latin-ext-800-normal.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-800-normal.woff) format('woff');
+}/* eb-garamond-latin-ext-400-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/eb-garamond-latin-ext-400-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-400-italic.woff) format('woff');
+}
+
+/* eb-garamond-latin-ext-500-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/eb-garamond-latin-ext-500-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-500-italic.woff) format('woff');
+}
+
+/* eb-garamond-latin-ext-600-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/eb-garamond-latin-ext-600-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-600-italic.woff) format('woff');
+}
+
+/* eb-garamond-latin-ext-700-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/eb-garamond-latin-ext-700-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-700-italic.woff) format('woff');
+}
+
+/* eb-garamond-latin-ext-800-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 800;
+  src: url(fonts/eb-garamond-latin-ext-800-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-800-italic.woff) format('woff');
+}/* eb-garamond-latin-ext-400-normal */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/eb-garamond-latin-ext-400-normal.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-400-normal.woff) format('woff');
+}
+
+/* eb-garamond-latin-ext-500-normal */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/eb-garamond-latin-ext-500-normal.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-500-normal.woff) format('woff');
+}
+
+/* eb-garamond-latin-ext-600-normal */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/eb-garamond-latin-ext-600-normal.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-600-normal.woff) format('woff');
+}
+
+/* eb-garamond-latin-ext-700-normal */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/eb-garamond-latin-ext-700-normal.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-700-normal.woff) format('woff');
+}
+
+/* eb-garamond-latin-ext-800-normal */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 800;
+  src: url(fonts/eb-garamond-latin-ext-800-normal.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-800-normal.woff) format('woff');
+}/* eb-garamond-latin-400-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/eb-garamond-latin-400-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-400-italic.woff) format('woff');
+}
+
+/* eb-garamond-latin-500-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/eb-garamond-latin-500-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-500-italic.woff) format('woff');
+}
+
+/* eb-garamond-latin-600-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/eb-garamond-latin-600-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-600-italic.woff) format('woff');
+}
+
+/* eb-garamond-latin-700-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/eb-garamond-latin-700-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-700-italic.woff) format('woff');
+}
+
+/* eb-garamond-latin-800-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 800;
+  src: url(fonts/eb-garamond-latin-800-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-800-italic.woff) format('woff');
+}/* eb-garamond-latin-ext-400-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/eb-garamond-latin-ext-400-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-400-italic.woff) format('woff');
+}/* eb-garamond-latin-ext-400-normal */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/eb-garamond-latin-ext-400-normal.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-400-normal.woff) format('woff');
+}/* eb-garamond-latin-ext-500-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/eb-garamond-latin-ext-500-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-500-italic.woff) format('woff');
+}/* eb-garamond-latin-ext-500-normal */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/eb-garamond-latin-ext-500-normal.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-500-normal.woff) format('woff');
+}/* eb-garamond-latin-ext-600-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/eb-garamond-latin-ext-600-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-600-italic.woff) format('woff');
+}/* eb-garamond-latin-ext-600-normal */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/eb-garamond-latin-ext-600-normal.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-600-normal.woff) format('woff');
+}/* eb-garamond-latin-ext-700-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/eb-garamond-latin-ext-700-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-700-italic.woff) format('woff');
+}/* eb-garamond-latin-ext-700-normal */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/eb-garamond-latin-ext-700-normal.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-700-normal.woff) format('woff');
+}/* eb-garamond-latin-ext-800-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 800;
+  src: url(fonts/eb-garamond-latin-ext-800-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-800-italic.woff) format('woff');
+}/* eb-garamond-latin-ext-800-normal */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 800;
+  src: url(fonts/eb-garamond-latin-ext-800-normal.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-800-normal.woff) format('woff');
+}/* eb-garamond-latin-ext-400-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/eb-garamond-latin-ext-400-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-400-italic.woff) format('woff');
+}
+
+/* eb-garamond-latin-ext-500-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/eb-garamond-latin-ext-500-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-500-italic.woff) format('woff');
+}
+
+/* eb-garamond-latin-ext-600-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/eb-garamond-latin-ext-600-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-600-italic.woff) format('woff');
+}
+
+/* eb-garamond-latin-ext-700-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/eb-garamond-latin-ext-700-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-700-italic.woff) format('woff');
+}
+
+/* eb-garamond-latin-ext-800-italic */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 800;
+  src: url(fonts/eb-garamond-latin-ext-800-italic.woff2) format('woff2'), url(fonts/eb-garamond-latin-ext-800-italic.woff) format('woff');
+}/* courier-prime-latin-400-italic */
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/courier-prime-latin-400-italic.woff2) format('woff2'), url(fonts/courier-prime-latin-400-italic.woff) format('woff');
+}/* courier-prime-latin-400-normal */
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/courier-prime-latin-400-normal.woff2) format('woff2'), url(fonts/courier-prime-latin-400-normal.woff) format('woff');
+}/* courier-prime-latin-700-italic */
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/courier-prime-latin-700-italic.woff2) format('woff2'), url(fonts/courier-prime-latin-700-italic.woff) format('woff');
+}/* courier-prime-latin-700-normal */
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/courier-prime-latin-700-normal.woff2) format('woff2'), url(fonts/courier-prime-latin-700-normal.woff) format('woff');
+}/* courier-prime-latin-ext-400-italic */
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/courier-prime-latin-ext-400-italic.woff2) format('woff2'), url(fonts/courier-prime-latin-ext-400-italic.woff) format('woff');
+}/* courier-prime-latin-ext-400-normal */
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/courier-prime-latin-ext-400-normal.woff2) format('woff2'), url(fonts/courier-prime-latin-ext-400-normal.woff) format('woff');
+}/* courier-prime-latin-ext-700-italic */
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/courier-prime-latin-ext-700-italic.woff2) format('woff2'), url(fonts/courier-prime-latin-ext-700-italic.woff) format('woff');
+}/* courier-prime-latin-ext-700-normal */
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/courier-prime-latin-ext-700-normal.woff2) format('woff2'), url(fonts/courier-prime-latin-ext-700-normal.woff) format('woff');
+}/* courier-prime-latin-ext-400-italic */
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/courier-prime-latin-ext-400-italic.woff2) format('woff2'), url(fonts/courier-prime-latin-ext-400-italic.woff) format('woff');
+}
+
+/* courier-prime-latin-ext-700-italic */
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/courier-prime-latin-ext-700-italic.woff2) format('woff2'), url(fonts/courier-prime-latin-ext-700-italic.woff) format('woff');
+}/* courier-prime-latin-ext-400-normal */
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/courier-prime-latin-ext-400-normal.woff2) format('woff2'), url(fonts/courier-prime-latin-ext-400-normal.woff) format('woff');
+}
+
+/* courier-prime-latin-ext-700-normal */
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/courier-prime-latin-ext-700-normal.woff2) format('woff2'), url(fonts/courier-prime-latin-ext-700-normal.woff) format('woff');
+}/* courier-prime-latin-400-italic */
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/courier-prime-latin-400-italic.woff2) format('woff2'), url(fonts/courier-prime-latin-400-italic.woff) format('woff');
+}
+
+/* courier-prime-latin-700-italic */
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/courier-prime-latin-700-italic.woff2) format('woff2'), url(fonts/courier-prime-latin-700-italic.woff) format('woff');
+}/* courier-prime-latin-ext-400-italic */
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/courier-prime-latin-ext-400-italic.woff2) format('woff2'), url(fonts/courier-prime-latin-ext-400-italic.woff) format('woff');
+}/* courier-prime-latin-ext-400-normal */
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/courier-prime-latin-ext-400-normal.woff2) format('woff2'), url(fonts/courier-prime-latin-ext-400-normal.woff) format('woff');
+}/* courier-prime-latin-ext-700-italic */
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/courier-prime-latin-ext-700-italic.woff2) format('woff2'), url(fonts/courier-prime-latin-ext-700-italic.woff) format('woff');
+}/* courier-prime-latin-ext-700-normal */
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/courier-prime-latin-ext-700-normal.woff2) format('woff2'), url(fonts/courier-prime-latin-ext-700-normal.woff) format('woff');
+}/* courier-prime-latin-ext-400-italic */
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/courier-prime-latin-ext-400-italic.woff2) format('woff2'), url(fonts/courier-prime-latin-ext-400-italic.woff) format('woff');
+}
+
+/* courier-prime-latin-ext-700-italic */
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/courier-prime-latin-ext-700-italic.woff2) format('woff2'), url(fonts/courier-prime-latin-ext-700-italic.woff) format('woff');
+}/* reenie-beanie-latin-400-normal */
+@font-face {
+  font-family: 'Reenie Beanie';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/reenie-beanie-latin-400-normal.woff2) format('woff2'), url(fonts/reenie-beanie-latin-400-normal.woff) format('woff');
+}/* manrope-latin-200-normal */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200;
+  src: url(fonts/manrope-latin-200-normal.woff2) format('woff2'), url(fonts/manrope-latin-200-normal.woff) format('woff');
+}/* manrope-latin-300-normal */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 300;
+  src: url(fonts/manrope-latin-300-normal.woff2) format('woff2'), url(fonts/manrope-latin-300-normal.woff) format('woff');
+}/* manrope-latin-400-normal */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/manrope-latin-400-normal.woff2) format('woff2'), url(fonts/manrope-latin-400-normal.woff) format('woff');
+}/* manrope-latin-500-normal */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/manrope-latin-500-normal.woff2) format('woff2'), url(fonts/manrope-latin-500-normal.woff) format('woff');
+}/* manrope-latin-600-normal */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/manrope-latin-600-normal.woff2) format('woff2'), url(fonts/manrope-latin-600-normal.woff) format('woff');
+}/* manrope-latin-700-normal */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/manrope-latin-700-normal.woff2) format('woff2'), url(fonts/manrope-latin-700-normal.woff) format('woff');
+}/* manrope-latin-800-normal */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 800;
+  src: url(fonts/manrope-latin-800-normal.woff2) format('woff2'), url(fonts/manrope-latin-800-normal.woff) format('woff');
+}/* manrope-latin-ext-200-normal */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200;
+  src: url(fonts/manrope-latin-ext-200-normal.woff2) format('woff2'), url(fonts/manrope-latin-ext-200-normal.woff) format('woff');
+}/* manrope-latin-ext-300-normal */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 300;
+  src: url(fonts/manrope-latin-ext-300-normal.woff2) format('woff2'), url(fonts/manrope-latin-ext-300-normal.woff) format('woff');
+}/* manrope-latin-ext-400-normal */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/manrope-latin-ext-400-normal.woff2) format('woff2'), url(fonts/manrope-latin-ext-400-normal.woff) format('woff');
+}/* manrope-latin-ext-500-normal */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/manrope-latin-ext-500-normal.woff2) format('woff2'), url(fonts/manrope-latin-ext-500-normal.woff) format('woff');
+}/* manrope-latin-ext-600-normal */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/manrope-latin-ext-600-normal.woff2) format('woff2'), url(fonts/manrope-latin-ext-600-normal.woff) format('woff');
+}/* manrope-latin-ext-700-normal */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/manrope-latin-ext-700-normal.woff2) format('woff2'), url(fonts/manrope-latin-ext-700-normal.woff) format('woff');
+}/* manrope-latin-ext-800-normal */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 800;
+  src: url(fonts/manrope-latin-ext-800-normal.woff2) format('woff2'), url(fonts/manrope-latin-ext-800-normal.woff) format('woff');
+}/* manrope-latin-ext-200-normal */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200;
+  src: url(fonts/manrope-latin-ext-200-normal.woff2) format('woff2'), url(fonts/manrope-latin-ext-200-normal.woff) format('woff');
+}
+
+/* manrope-latin-ext-300-normal */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 300;
+  src: url(fonts/manrope-latin-ext-300-normal.woff2) format('woff2'), url(fonts/manrope-latin-ext-300-normal.woff) format('woff');
+}
+
+/* manrope-latin-ext-400-normal */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/manrope-latin-ext-400-normal.woff2) format('woff2'), url(fonts/manrope-latin-ext-400-normal.woff) format('woff');
+}
+
+/* manrope-latin-ext-500-normal */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/manrope-latin-ext-500-normal.woff2) format('woff2'), url(fonts/manrope-latin-ext-500-normal.woff) format('woff');
+}
+
+/* manrope-latin-ext-600-normal */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/manrope-latin-ext-600-normal.woff2) format('woff2'), url(fonts/manrope-latin-ext-600-normal.woff) format('woff');
+}
+
+/* manrope-latin-ext-700-normal */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/manrope-latin-ext-700-normal.woff2) format('woff2'), url(fonts/manrope-latin-ext-700-normal.woff) format('woff');
+}
+
+/* manrope-latin-ext-800-normal */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 800;
+  src: url(fonts/manrope-latin-ext-800-normal.woff2) format('woff2'), url(fonts/manrope-latin-ext-800-normal.woff) format('woff');
+}/* manrope-latin-ext-200-normal */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200;
+  src: url(fonts/manrope-latin-ext-200-normal.woff2) format('woff2'), url(fonts/manrope-latin-ext-200-normal.woff) format('woff');
+}/* manrope-latin-ext-300-normal */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 300;
+  src: url(fonts/manrope-latin-ext-300-normal.woff2) format('woff2'), url(fonts/manrope-latin-ext-300-normal.woff) format('woff');
+}/* manrope-latin-ext-400-normal */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(fonts/manrope-latin-ext-400-normal.woff2) format('woff2'), url(fonts/manrope-latin-ext-400-normal.woff) format('woff');
+}/* manrope-latin-ext-500-normal */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(fonts/manrope-latin-ext-500-normal.woff2) format('woff2'), url(fonts/manrope-latin-ext-500-normal.woff) format('woff');
+}/* manrope-latin-ext-600-normal */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url(fonts/manrope-latin-ext-600-normal.woff2) format('woff2'), url(fonts/manrope-latin-ext-600-normal.woff) format('woff');
+}/* manrope-latin-ext-700-normal */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(fonts/manrope-latin-ext-700-normal.woff2) format('woff2'), url(fonts/manrope-latin-ext-700-normal.woff) format('woff');
+}/* manrope-latin-ext-800-normal */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 800;
+  src: url(fonts/manrope-latin-ext-800-normal.woff2) format('woff2'), url(fonts/manrope-latin-ext-800-normal.woff) format('woff');
+}

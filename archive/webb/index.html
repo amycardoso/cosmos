@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0A0909">
+<title>Cosmos · Amélia</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip" href="#leitura">Pular para a leitura</a>
+
+<header class="top">
+  <a class="brand" href="#" aria-label="Cosmos de Amélia, início">Amélia</a>
+  <nav class="sections" aria-label="Seções">
+    <a href="#leitura"><i class="dot dot--read" aria-hidden="true"></i>Leitura</a>
+    <a href="#musica"><i class="dot dot--music" aria-hidden="true"></i>Música</a>
+    <a href="#telas"><i class="dot dot--screen" aria-hidden="true"></i>Telas</a>
+  </nav>
+</header>
+
+<main>
+  <section class="field" aria-labelledby="field-title">
+    <div class="plate" aria-hidden="true">
+      <canvas class="plate__canvas" width="640" height="360"></canvas>
+      <img class="plate__img" alt="" src="img/helix.jpg" srcset="img/helix-1280.jpg 1280w, img/helix.jpg 2560w" sizes="100vw" fetchpriority="high">
+    </div>
+    <div class="field__sky" aria-hidden="true"></div>
+    <div class="field__objects" role="list" aria-label="Tudo o que passou pelo meu ano"></div>
+    <div class="field__copy">
+      <h1 id="field-title">Meu 2026 <span>em luz</span></h1>
+      <p class="field__lede" data-lede></p>
+      <ul class="legend" aria-label="Legenda">
+        <li><i class="dot dot--read" aria-hidden="true"></i>livros</li>
+        <li><i class="dot dot--music" aria-hidden="true"></i>artistas</li>
+        <li><i class="dot dot--screen" aria-hidden="true"></i>séries e filmes</li>
+      </ul>
+      <p class="field__hint">Toque numa luz para saber o que ela é.</p>
+    </div>
+  </section>
+
+  <section class="stream stream--read" id="leitura" aria-labelledby="h-read">
+    <header class="stream__head">
+      <img class="stream__plate" src="img/cliffs.jpg" alt="" decoding="async" style="object-position:60% 40%">
+      <h2 id="h-read">Leitura</h2>
+      <p class="stream__line" data-read-line></p>
+    </header>
+    <div class="stream__grid">
+      <figure class="panel panel--wide">
+        <figcaption><h3>O ano, noite a noite</h3><p>Cada ponto é um dia. Quanto mais li, mais ele brilha; as noites mais longas ganham os raios.</p></figcaption>
+        <div class="year-wrap"><div class="year" data-year role="img"></div><div class="months" aria-hidden="true" data-months></div></div>
+      </figure>
+      <figure class="panel">
+        <figcaption><h3>Quando eu leio</h3><p>As 24 horas em volta, um anel por dia da semana, de domingo no centro a sábado na borda.</p></figcaption>
+        <div class="eye" data-eye role="img"></div>
+        <p class="panel__note" data-eye-note></p>
+      </figure>
+      <figure class="panel">
+        <figcaption><h3>Livros do ano</h3><p>O comprimento de cada rastro é o tempo que dei a ele.</p></figcaption>
+        <ol class="trails" data-books></ol>
+      </figure>
+    </div>
+  </section>
+
+  <section class="stream stream--music" id="musica" aria-labelledby="h-music">
+    <header class="stream__head">
+      <img class="stream__plate" src="img/pillars.jpg" alt="" decoding="async" style="object-position:50% 30%">
+      <h2 id="h-music">Música</h2>
+      <p class="stream__line" data-music-line></p>
+    </header>
+    <div class="stream__grid">
+      <figure class="panel">
+        <figcaption><h3>Tocou há pouco</h3></figcaption>
+        <div class="recent" data-recent></div>
+        <h3 class="panel__sub">Em repetição</h3>
+        <ol class="tracks" data-tracks></ol>
+      </figure>
+      <figure class="panel panel--wide">
+        <figcaption><h3>Artistas do ano</h3><p>Cada estrela é alguém que ouvi, do tamanho das horas que passei com essa pessoa.</p></figcaption>
+        <div class="cluster" data-cluster role="img"></div>
+      </figure>
+      <figure class="panel panel--full">
+        <figcaption><h3>Quando eu ouço</h3><p>O dia inteiro numa faixa, da meia-noite à meia-noite.</p></figcaption>
+        <div class="band" data-band role="img"></div>
+        <div class="band__ticks" aria-hidden="true"><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>24h</span></div>
+      </figure>
+    </div>
+  </section>
+
+  <section class="stream stream--screen" id="telas" aria-labelledby="h-screen">
+    <header class="stream__head">
+      <img class="stream__plate" src="img/helix-1280.jpg" alt="" decoding="async" style="object-position:20% 70%">
+      <h2 id="h-screen">Telas</h2>
+      <p class="stream__line" data-screen-line></p>
+    </header>
+    <div class="stream__grid">
+      <figure class="panel panel--wide">
+        <figcaption><h3>Em órbita agora</h3><p>Cada episódio é um ponto na órbita da temporada; os acesos são os que já vi.</p></figcaption>
+        <ul class="orbits" data-shows></ul>
+      </figure>
+      <figure class="panel">
+        <figcaption><h3>Como me senti</h3><p>O que marquei depois de cada episódio e filme.</p></figcaption>
+        <div class="feelings" data-feelings role="img"></div>
+      </figure>
+      <figure class="panel panel--full">
+        <figcaption><h3>Filmes do ano</h3></figcaption>
+        <ul class="films" data-films></ul>
+      </figure>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <p data-updated></p>
+  <p>Dados de exemplo.</p>
+  <p class="credits">Imagens dos telescópios James Webb e Hubble. Nebulosa da Hélice (Webb): NASA, ESA, CSA, STScI, A. Pagan (STScI). Penhascos Cósmicos (Webb): NASA, ESA, CSA e STScI. Pilares da Criação (Hubble, 2014): NASA, ESA e Hubble Heritage Team (STScI/AURA). Uso sob as licenças da NASA e da ESA.</p>
+</footer>
+
+<script src="data/sample.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
