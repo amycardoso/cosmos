@@ -2,6 +2,10 @@
 
 A private site with my year in reading, music, and series and films, in the colours of Hubble's ultraviolet Jupiter.
 
+![The site with sample data: three day-by-day belts for reading, music and screens, the period switch, and the reading, music and screens sections](docs/cosmos.gif)
+
+<sub>Recorded with the sample data in `site/data/cosmos.js`.</sub>
+
 - `site/`: the page itself (plain HTML, CSS and JS). Open `site/index.html` to see it with sample data.
 - `site/data/cosmos.js`: sample data in the exact shape the job produces. Nothing in it is real.
 - `job/`: the scheduled job that reads the real sources and builds the site.
