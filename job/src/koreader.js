@@ -4,6 +4,7 @@
 import initSqlJs from 'sql.js';
 import { local } from './time.js';
 import { minutesPerDay, clocks, inPeriod, round1 } from './aggregate.js';
+import { sittings } from './connections.js';
 
 const FINISHED = 0.97; // share of pages reached that counts as finished
 const READING_DAYS = 30; // opened within this many days: still "reading"
@@ -105,6 +106,8 @@ export function reading(db, span, nowMs) {
     // The stats database only knows books that were opened, so there is no "unread" here.
     library: list.map((b) => ({ title: b.title, lang: b.lang, status: b.status === 'lido' ? 'finished' : b.status === 'lendo' ? 'reading' : 'on_hold' })),
     fingerprints: year.slice(0, 6).map(fingerprint),
+    // For the connections only; the site never receives it.
+    timeline: year.map((b) => ({ title: b.title, sittings: sittings(b.stats.filter((s) => inPeriod(s.start, span, null))) })),
   };
 }
 

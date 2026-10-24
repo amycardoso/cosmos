@@ -221,6 +221,8 @@ export function screens({ mirror, library: lib, seasons }, span) {
     watchingClocks: clocks(sessions, span),
     shows: shows.concat(films),
     watchlist,
+    // For the connections only: [watched at, minutes, title, kind]. The site never receives it.
+    timeline: yearSessions.map((s) => [s.start, Math.round(s.minutes), nameOf(s.entry.titleId), s.entry.kind]),
     periods: { year: { feelings: feelings(null) }, month: { feelings: feelings(PERIOD_DAYS.month) }, week: { feelings: feelings(PERIOD_DAYS.week) } },
   };
 }

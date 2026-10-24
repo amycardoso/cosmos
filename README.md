@@ -19,7 +19,8 @@ Every three hours, `.github/workflows/deploy.yml` runs `npm run build`, which:
 1. downloads KOReader's `statistics.sqlite3` from WebDAV (KOReader's own statistics cloud sync puts it there) and turns it into the Reading Atlas views: time per day, the hours grid, the shelf, the library by language and each book's fingerprint;
 2. asks Spotify for the latest plays and adds them to a history the job keeps, because Spotify only remembers the last 50;
 3. mirrors the Bingers library through `/v1/entries` and its change cursor, plus the library and the season of each show in progress;
-4. writes `dist/` with the real data in `dist/data/cosmos.js`, and deploys it to Cloudflare Pages.
+4. crosses the three timelines: what played on Spotify while each book was open, how much of each book was read in silence, and which shows shared their weeks with a book. Only those links reach the site, never the raw plays or sessions;
+5. writes `dist/` with the real data in `dist/data/cosmos.js`, and deploys it to Cloudflare Pages.
 
 If one source fails, the site keeps that source's last good read and says so in the footer.
 
