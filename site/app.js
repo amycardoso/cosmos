@@ -206,20 +206,47 @@
   }
 
   // ---------- Reading ----------
+  // Width of a label in the shelf's 12px text face, to wrap long titles instead of cutting them.
+  const measure = (() => {
+    const ctx = document.createElement('canvas').getContext('2d');
+    return (t) => {
+      ctx.font = `12px ${getComputedStyle(document.body).getPropertyValue('--text') || 'sans-serif'}`;
+      return ctx.measureText(t).width;
+    };
+  })();
+  function wrap(text, max) {
+    const lines = [];
+    let line = '';
+    for (const word of text.split(/\s+/)) {
+      const next = line ? `${line} ${word}` : word;
+      if (line && measure(next) > max) { lines.push(line); line = word; } else line = next;
+    }
+    return lines.concat(line ? [line] : []);
+  }
+
   function renderShelf() {
     const host = $('[data-shelf]');
+    host.textContent = '';
     const done = D.books.filter((b) => b.status === 'lido').sort((a, b) => a.finished.localeCompare(b.finished));
     const open = D.books.filter((b) => b.status !== 'lido');
     if (!D.books.length) return emptyNote(host, 'Nenhum livro aberto este ano ainda.');
     const maxP = Math.max(1, ...D.books.map((b) => b.pages || 0));
-    // Room above the spines for titles that do not fit inside them.
-    // Every title stands above its spine, so the spine heights stay true to the pages.
-    const H = 270, base = H, gapB = 4, apart = 40;
-    const w = (b) => 20 + b.hours * 1.6;
-    const h = (b) => 30 + (b.pages / maxP) * 110;
-    // At least wide enough for the two captions under the shelf.
-    const width = Math.max(220, done.reduce((a, b) => a + w(b) + gapB, 0) + apart + open.reduce((a, b) => a + w(b) + gapB, 0) - gapB);
-    const svg = el('svg:svg', { viewBox: `0 0 ${width} ${H + 26}`, width, role: 'img', 'aria-label': `${done.length} livros terminados e ${open.length} abertos.` });
+    // Every title stands whole above its spine. A long one wraps onto a second or third
+    // rotated line, and the room above the spines grows to the longest label.
+    const LABEL = 150, LINE = 14, SPINE = 140, gapB = 4, apart = 40;
+    const labels = new Map(D.books.map((b) => [b, wrap(b.title, LABEL)]));
+    const labelH = Math.max(...D.books.map((b) => Math.max(...labels.get(b).map(measure)))) + 10;
+    const base = labelH + SPINE;
+    const natural = (b) => Math.max(labels.get(b).length * LINE + 6, 20 + b.hours * 1.6);
+    const h = (b) => 30 + (b.pages / maxP) * (SPINE - 30);
+    // Stretch the spines to fill the figure's width, so the shelf never sits squeezed in a corner.
+    const gaps = (D.books.length - 1) * gapB + (done.length && open.length ? apart : 0);
+    const sum = D.books.reduce((a, b) => a + natural(b), 0);
+    const avail = host.clientWidth || 560;
+    const k = Math.max(1, Math.min(2.4, (avail - gaps) / sum));
+    const w = (b) => natural(b) * k;
+    const width = Math.max(220, sum * k + gaps);
+    const svg = el('svg:svg', { viewBox: `0 0 ${width} ${base + 26}`, width, role: 'img', 'aria-label': `${done.length} livros terminados e ${open.length} abertos.` });
     let x = 0;
     const spine = (b, fill, frac) => {
       const bw = w(b), bh = h(b);
@@ -227,8 +254,12 @@
       g.append(el('svg:title', { text: `${b.title}, ${b.author}. ${b.pages} páginas, ${num(b.hours, 1)} h${frac < 1 ? `, ${Math.round(frac * 100)}%` : ''}` }));
       if (frac < 1) g.append(el('svg:rect', { x, y: base - bh, width: bw, height: bh, rx: 2, fill: 'none', stroke: fill, 'stroke-opacity': 0.55 }));
       g.append(el('svg:rect', { x, y: base - bh * frac, width: bw, height: bh * frac, rx: 2, fill }));
-      const tx = x + bw / 2 + 4, ty = base - bh - 6;
-      g.append(el('svg:text', { x: tx, y: ty, transform: `rotate(-90 ${tx} ${ty})`, text: b.title }));
+      const lines = labels.get(b);
+      const ty = base - bh - 6;
+      lines.forEach((line, i) => {
+        const tx = x + bw / 2 + 4 + (i - (lines.length - 1) / 2) * LINE;
+        g.append(el('svg:text', { x: tx, y: ty, transform: `rotate(-90 ${tx} ${ty})`, text: line }));
+      });
       svg.append(g);
       x += bw + gapB;
     };
@@ -237,8 +268,8 @@
     x = width - open.reduce((acc, b) => acc + w(b) + gapB, 0) + gapB;
     open.forEach((b) => spine(b, b.status === 'pausado' ? COLORS.pole : COLORS.read, b.progress));
     svg.append(el('svg:line', { x1: 0, x2: width, y1: base + 1, y2: base + 1, stroke: 'rgba(237,241,250,.25)' }));
-    svg.append(el('svg:text', { x: 0, y: H + 20, text: 'terminados' }));
-    svg.append(el('svg:text', { x: width, y: H + 20, 'text-anchor': 'end', text: 'abertos' }));
+    svg.append(el('svg:text', { x: 0, y: base + 20, text: 'terminados' }));
+    svg.append(el('svg:text', { x: width, y: base + 20, 'text-anchor': 'end', text: 'abertos' }));
     host.append(svg);
   }
 
@@ -386,6 +417,14 @@
 
   renderNow();
   renderShelf();
+  // The shelf fills its figure, so draw it again when the figure changes width.
+  if ('ResizeObserver' in window) {
+    let last = 0;
+    new ResizeObserver(([entry]) => {
+      const wNow = Math.round(entry.contentRect.width);
+      if (wNow !== last) { last = wNow; renderShelf(); }
+    }).observe($('[data-shelf]'));
+  }
   renderPrints();
   renderMap();
   renderShows();

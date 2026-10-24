@@ -33,20 +33,25 @@ export async function get(path, env) {
 const first = (...v) => v.find((x) => x !== undefined && x !== null);
 const listIn = (page) => first(page.data, page.items, page.entries, page.results, Array.isArray(page) ? page : null) || [];
 
+// An entry is one episode or one movie. The real API names it by entity_kind and
+// entity_id and carries no season or episode number; those come from the episodes read.
 export function normEntry(e) {
   const titleId = first(e.title_id, e.title?.id, typeof e.title === 'string' ? e.title : undefined, e.show_id, e.movie_id);
   const episode = first(e.episode, e.episode_number, e.number);
+  const kind = /episode/i.test(String(first(e.entity_kind, e.kind, e.type, ''))) || episode != null ? 'episode' : 'movie';
+  const entityId = first(e.entity_id, e.episode_id, e.id);
   return {
-    id: String(first(e.id, `${titleId}:${e.season}:${episode}`)),
+    id: entityId != null ? `${kind}:${entityId}` : `${titleId}:${e.season}:${episode}`,
+    entityId: entityId == null ? null : String(entityId),
     titleId: titleId == null ? null : String(titleId),
-    kind: first(e.kind, e.type, episode != null ? 'episode' : 'movie'),
+    kind,
     season: first(e.season, e.season_number, null),
     episode: episode ?? null,
     watchedAt: Date.parse(first(e.last_watched_at, e.watched_at, e.first_watched_at, '')) || null,
     plays: first(e.plays, e.watched ? 1 : 0),
     watched: first(e.watched, (e.plays || 0) > 0),
     rating: first(e.rating, e.my_rating, null),
-    feelings: first(e.feelings, e.my_feelings, []),
+    feelings: first(e.feelings, e.my_feelings, e.feeling ? [e.feeling] : []),
     minutes: first(e.runtime_minutes, e.runtime, null),
     deleted: Boolean(first(e.deleted, e.tombstone, e.deleted_at, false)),
   };
@@ -63,8 +68,12 @@ export function normTitle(id, t) {
 }
 
 // Pulls every change since the stored cursor into the mirror { cursor, entries, titles }.
+// Bump when normEntry changes how entries are keyed, so the mirror is read again from the start.
+const MIRROR_VERSION = 2;
+
 export async function syncEntries(env, mirror) {
-  const m = { cursor: mirror?.cursor || null, entries: { ...(mirror?.entries || {}) }, titles: { ...(mirror?.titles || {}) } };
+  if (mirror?.version !== MIRROR_VERSION) mirror = null;
+  const m = { version: MIRROR_VERSION, cursor: mirror?.cursor || null, entries: { ...(mirror?.entries || {}) }, titles: { ...(mirror?.titles || {}) } };
   for (let guard = 0; guard < 200; guard++) {
     const q = new URLSearchParams({ include: 'titles' });
     if (m.cursor) q.set('cursor', m.cursor);
@@ -106,10 +115,13 @@ export async function library(env) {
   }));
 }
 
-// The episodes of one season, for the progress strip and per-episode feelings.
-export async function season(env, titleId, n) {
-  const page = await get(`/titles/${encodeURIComponent(titleId)}/episodes?season=${n}`, env);
-  return listIn(page).map((e) => ({
+// Every episode of a show with her state on each, for the season she is in and per-episode feelings.
+export async function episodes(env, titleId) {
+  const page = await get(`/titles/${encodeURIComponent(titleId)}/episodes`, env);
+  const list = first(page.episodes, listIn(page).length ? listIn(page) : null, (page.seasons || []).flatMap((s) => (s.episodes || []).map((e) => ({ season: s.number ?? s.season, ...e }))));
+  return (list || []).map((e) => ({
+    id: e.id == null ? null : String(e.id),
+    season: first(e.season, e.season_number, null),
     episode: first(e.episode, e.number, e.episode_number),
     watched: Boolean(first(e.watched, e.my_watched, (e.plays || 0) > 0, false)),
     feelings: first(e.feelings, e.my_feelings, []),
@@ -134,11 +146,16 @@ export async function fetchBingers(env, mirror) {
     .filter((t) => SHOW_STATUSES.includes(t.status) && lastByTitle.has(t.id))
     .sort((a, b) => lastByTitle.get(b.id).watchedAt - lastByTitle.get(a.id).watchedAt)
     .slice(0, 6);
+  const watchedIds = new Set(watched.map((e) => e.entityId));
   const seasons = {};
   for (const t of active) {
-    const s = lastByTitle.get(t.id).season;
-    if (s == null) continue;
-    seasons[t.id] = { season: s, episodes: await season(env, t.id, s).catch(() => []) };
+    // The episodes read carries no watched state; the entries feed does.
+    const eps = (await episodes(env, t.id).catch(() => [])).map((e) => ({ ...e, watched: e.watched || watchedIds.has(e.id) }));
+    const last = lastByTitle.get(t.id);
+    // The season of the last episode she watched; failing that, the latest season with a watched episode.
+    const s = first(last.season, eps.find((e) => e.id === last.entityId)?.season, Math.max(...eps.filter((e) => e.watched).map((e) => e.season ?? -1)));
+    if (s == null || s < 0) continue;
+    seasons[t.id] = { season: s, episodes: eps.filter((e) => e.season === s) };
   }
   return { mirror: synced, library: lib, seasons };
 }
@@ -159,7 +176,7 @@ export function screens({ mirror, library: lib, seasons }, span) {
   // Episode feelings that only the per-season read carries.
   for (const [id, s] of Object.entries(seasons)) {
     for (const ep of s.episodes) {
-      const e = watched.find((x) => x.titleId === id && x.season === s.season && x.episode === ep.episode);
+      const e = watched.find((x) => x.titleId === id && (ep.id ? x.entityId === ep.id : x.season === s.season && x.episode === ep.episode));
       if (e && !(e.feelings || []).length && ep.feelings?.length) e.feelings = ep.feelings;
     }
   }

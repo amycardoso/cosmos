@@ -102,3 +102,18 @@ test('periods reach back across the new year, the year stays this year', () => {
 test('local ISO times keep minutes in her timezone', () => {
   assert.equal(localIso(Date.parse('2026-10-20T01:45:00Z')), '2026-10-19T22:45:00-03:00');
 });
+
+test('bingers entries as the API sends them: one per episode, kind from entity_kind', () => {
+  const raw = (id, at) => ({ entity_kind: 'episode', entity_id: id, title_id: 's1', watched: true, plays: 1, first_watched_at: at, last_watched_at: at, rating: null, feeling: null, deleted: false });
+  const entries = [raw('ep6', '2026-10-18T23:00:00Z'), raw('ep7', '2026-10-19T23:30:00Z'),
+    { entity_kind: 'movie', entity_id: 'f1', title_id: 'f1', watched: true, plays: 1, last_watched_at: '2026-09-01T23:00:00Z', rating: 4, feeling: 'amused', deleted: false }].map(normEntry);
+  assert.deepEqual(entries.map((e) => [e.id, e.kind]), [['episode:ep6', 'episode'], ['episode:ep7', 'episode'], ['movie:f1', 'movie']]);
+  assert.deepEqual(entries[2].feelings, ['amused']);
+  const mirror = { entries: Object.fromEntries(entries.map((e) => [e.id, e])), titles: {} };
+  const library = [{ id: 's1', name: 'The Bear', kind: 'show', status: 'watch_next', minutes: 30 }, { id: 'f1', name: 'Perfect Days', kind: 'movie', status: 'watched', minutes: 124 }];
+  const seasons = { s1: { season: 3, episodes: Array.from({ length: 10 }, (_, i) => ({ id: `ep${i + 1}`, season: 3, episode: i + 1, watched: i < 7, feelings: i === 6 ? ['tense'] : [] })) } };
+  const s = screens({ mirror, library, seasons }, span);
+  assert.deepEqual(s.shows.map((x) => [x.title, x.kind]), [['The Bear', 'série'], ['Perfect Days', 'filme']]);
+  assert.equal(s.shows[0].next, 'T3 E8');
+  assert.deepEqual(s.periods.year.feelings, { tense: 1, amused: 1 });
+});

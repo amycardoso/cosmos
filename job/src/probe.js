@@ -46,7 +46,25 @@ await tryRun('spotify', async () => {
 
 await tryRun('bingers', async () => {
   if (!env.BINGERS_TOKEN) return console.log('bingers: no credentials');
-  show('bingers entries', await get('/entries?include=titles', env));
+  const page = await get('/entries?include=titles', env);
+  show('bingers entries', page);
+  // The first item alone can hide fields that only episodes (or only movies) carry,
+  // so list every key seen across the page with how many items have it.
+  const items = Array.isArray(page.items) ? page.items : [];
+  const seen = {};
+  for (const it of items) {
+    for (const [k, v] of Object.entries(it)) {
+      const s = (seen[k] ||= { n: 0, types: new Set() });
+      s.n++;
+      s.types.add(v === null ? 'null' : Array.isArray(v) ? 'array' : typeof v);
+    }
+  }
+  console.log(`bingers entries keys (${items.length} items): ${Object.entries(seen).map(([k, s]) => `${k} ${s.n} ${[...s.types].join('|')}`).join(', ')}`);
+  // Enum values only (like "episode" or "show"), never titles or ids.
+  const lib = await get('/library?filter=all&limit=200', env);
+  console.log(`bingers kinds: entries ${[...new Set(items.map((i) => i.entity_kind))].join('|')}, library ${[...new Set((lib.items || []).map((t) => t.kind))].join('|')}`);
+  const showId = items.find((i) => /episode/i.test(i.entity_kind))?.title_id;
+  if (showId) show('bingers episodes', await get(`/titles/${encodeURIComponent(showId)}/episodes`, env));
   show('bingers library', await get('/library?filter=all&limit=1', env));
   show('bingers watchlist', await get('/watchlist', env));
 });
