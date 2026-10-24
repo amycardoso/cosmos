@@ -10,11 +10,12 @@
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<a class="skip" href="#leitura">Pular para a leitura</a>
+<a class="skip" href="#conexoes">Pular para as conexões</a>
 
 <header class="top">
   <a class="brand" href="#" aria-label="Cosmos de Amélia, início"><img src="img/jupiter.jpg" alt="" width="40" height="40">Amélia</a>
   <nav class="sections" aria-label="Seções">
+    <a href="#conexoes"><i class="sw sw--all" aria-hidden="true"></i>Conexões</a>
     <a href="#leitura"><i class="sw sw--read" aria-hidden="true"></i>Leitura</a>
     <a href="#musica"><i class="sw sw--music" aria-hidden="true"></i>Música</a>
     <a href="#telas"><i class="sw sw--screen" aria-hidden="true"></i>Telas</a>
@@ -46,27 +47,56 @@
     </aside>
   </section>
 
+  <section class="stream stream--links" id="conexoes" aria-labelledby="h-links">
+    <header class="stream__head"><h2 id="h-links">Conexões</h2><p data-links-line></p></header>
+    <div class="stream__grid">
+      <figure class="fig fig--full sky-fig">
+        <figcaption><h3>O que dividiu o meu tempo</h3><p>Cada livro, artista e série é uma estrela, do tamanho das horas que passei com ela. A linha cheia liga a música ao livro que eu lia enquanto ela tocava; a tracejada, o livro à série ou filme das mesmas semanas. Toque numa estrela.</p></figcaption>
+        <div class="sky" data-sky></div>
+        <p class="sky__readout" data-sky-readout aria-live="polite"></p>
+        <ul class="key">
+          <li><i class="sw sw--read" aria-hidden="true"></i>livros</li>
+          <li><i class="sw sw--music" aria-hidden="true"></i>artistas</li>
+          <li><i class="sw sw--screen" aria-hidden="true"></i>séries e filmes</li>
+        </ul>
+      </figure>
+      <figure class="fig fig--full">
+        <figcaption><h3>Como o dia se divide</h3><p>Cada hora da semana em três traços: leitura, música e telas, cada um medido contra a própria história.</p></figcaption>
+        <div class="day__controls">
+          <div class="pick" role="radiogroup" aria-label="Mostrar">
+            <button role="radio" data-show="all">os três</button>
+            <button role="radio" data-show="read">leitura</button>
+            <button role="radio" data-show="music">música</button>
+            <button role="radio" data-show="screen">telas</button>
+          </div>
+        </div>
+        <div class="day" data-day></div>
+        <p class="day__readout" data-day-readout aria-live="polite"></p>
+        <ul class="peaks">
+          <li><i class="sw sw--read" aria-hidden="true"></i><span data-read-peak></span></li>
+          <li><i class="sw sw--music" aria-hidden="true"></i><span data-music-peak></span></li>
+          <li><i class="sw sw--screen" aria-hidden="true"></i><span data-screen-peak></span></li>
+        </ul>
+      </figure>
+    </div>
+  </section>
+
   <section class="stream stream--read" id="leitura" aria-labelledby="h-read">
     <header class="stream__head"><h2 id="h-read">Leitura</h2><p data-read-line></p></header>
     <div class="stream__grid">
       <figure class="fig fig--wide">
-        <figcaption><h3>Quando eu leio</h3><p data-read-peak></p></figcaption>
-        <div class="clock" data-clock="read"></div>
+        <figcaption><h3>A estante do ano</h3><p>Cada livro pela capa, a altura pelas páginas. Os abertos ficam à parte, acesos até onde cheguei.</p></figcaption>
+        <div class="shelf" data-shelf></div>
       </figure>
-      <div class="fig-stack">
-        <figure class="fig">
-          <figcaption><h3>A estante do ano</h3><p>Altura pelas páginas, largura pelas horas. Os abertos ficam à parte, cheios até onde cheguei.</p></figcaption>
-          <div class="shelf" data-shelf></div>
-        </figure>
-        <figure class="fig">
-          <figcaption><h3>A biblioteca por idioma</h3><p data-map-line></p></figcaption>
-          <div class="map" data-map></div>
-          <ul class="key" data-map-key></ul>
-        </figure>
-      </div>
-      <figure class="fig fig--wide">
-        <figcaption><h3>Como cada livro foi lido</h3><p>Uma faixa por livro, um traço a cada dez páginas. Mais claro onde demorei mais; a marca embaixo é releitura.</p></figcaption>
+      <figure class="fig fig--narrow">
+        <figcaption><h3>A biblioteca por idioma</h3><p data-map-line></p></figcaption>
+        <div class="map" data-map></div>
+        <ul class="key" data-map-key></ul>
+      </figure>
+      <figure class="fig fig--full">
+        <figcaption><h3>Como cada livro foi lido, e ao som de quê</h3><p>Uma faixa por livro, um traço a cada dez páginas: mais claro onde demorei mais, e a marca embaixo é releitura. A barra azul é a trilha: o que tocou enquanto eu lia, e o resto em silêncio.</p></figcaption>
         <ol class="prints" data-prints></ol>
+        <button class="more" data-prints-more hidden></button>
       </figure>
     </div>
   </section>
@@ -74,15 +104,11 @@
   <section class="stream stream--music" id="musica" aria-labelledby="h-music">
     <header class="stream__head"><h2 id="h-music">Música</h2><p data-music-line></p></header>
     <div class="stream__grid">
-      <figure class="fig fig--half">
-        <figcaption><h3>Quando eu ouço</h3><p data-music-peak></p></figcaption>
-        <div class="clock" data-clock="music"></div>
-      </figure>
-      <figure class="fig fig--half">
+      <figure class="fig fig--narrow">
         <figcaption><h3>Em repetição</h3><p>As faixas que mais toquei no período.</p></figcaption>
         <ol class="tracks" data-tracks></ol>
       </figure>
-      <figure class="fig fig--full">
+      <figure class="fig fig--wide">
         <figcaption><h3>Com quem passei o tempo</h3><p>Horas com cada artista no período.</p></figcaption>
         <ol class="artists" data-artists></ol>
       </figure>
@@ -92,23 +118,21 @@
   <section class="stream stream--screen" id="telas" aria-labelledby="h-screen">
     <header class="stream__head"><h2 id="h-screen">Telas</h2><p data-screen-line></p></header>
     <div class="stream__grid">
-      <figure class="fig fig--half">
-        <figcaption><h3>Quando eu assisto</h3><p data-screen-peak></p></figcaption>
-        <div class="clock" data-clock="screen"></div>
-      </figure>
-      <figure class="fig fig--half">
+      <figure class="fig fig--wide">
         <figcaption><h3>Séries em andamento</h3><p>Um traço por episódio da temporada; os acesos já vi.</p></figcaption>
         <ul class="shows" data-shows></ul>
       </figure>
-      <figure class="fig fig--half">
-        <figcaption><h3>Como me senti</h3><p>O que marquei depois de cada episódio e filme no período.</p></figcaption>
-        <ul class="feel" data-feelings></ul>
-      </figure>
-      <figure class="fig fig--half">
-        <figcaption><h3>Filmes do ano e a fila</h3></figcaption>
-        <ul class="films" data-films></ul>
-        <ul class="queue" data-queue></ul>
-      </figure>
+      <div class="fig-stack">
+        <figure class="fig">
+          <figcaption><h3>Como me senti</h3><p>O que marquei depois de cada episódio e filme no período.</p></figcaption>
+          <ul class="feel" data-feelings></ul>
+        </figure>
+        <figure class="fig">
+          <figcaption><h3>Filmes do ano e a fila</h3></figcaption>
+          <ul class="films" data-films></ul>
+          <ul class="queue" data-queue></ul>
+        </figure>
+      </div>
     </div>
   </section>
 </main>

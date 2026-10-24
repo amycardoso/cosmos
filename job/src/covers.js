@@ -4,6 +4,7 @@
 import { createHash } from 'node:crypto';
 
 const RETRY_DAYS = 14; // how long a book with no cover found waits before another lookup
+const VERSION = 2; // misses cached by an older lookup are tried again at once
 const norm = (s) => (s || '').trim().toLowerCase();
 
 export const coverKey = (b) => `${norm(b.title)}|${norm(b.author)}`;
@@ -16,16 +17,42 @@ async function json(url) {
   return res.json();
 }
 
+// E-book file titles carry extras the catalogues don't know: "(Portuguese Edition)",
+// "[ebook]", a subtitle, a series after a dash. Authors may be "Surname, Name" or several lines.
+export function cleanTitle(t) {
+  return (t || '').replace(/[([][^)\]]*[)\]]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+export const mainTitle = (t) => cleanTitle(t).split(/\s[-–—|]\s|:\s/)[0].trim();
+export function cleanAuthor(a) {
+  const first = (a || '').split(/\n|;|&| e | and /)[0].trim();
+  const m = first.match(/^([^,]+),\s*(.+)$/);
+  return (m ? `${m[2]} ${m[1]}` : first).replace(/\s+/g, ' ').trim();
+}
+
+// Tries the catalogues from the most to the least precise query. `failed` says a
+// catalogue errored (often Google's rate limit on shared runners), so a miss isn't final.
 export async function lookup(b) {
-  const q = new URLSearchParams({ title: b.title, limit: '1', fields: 'cover_i' });
-  if (b.author) q.set('author', b.author);
-  const ol = await json(`https://openlibrary.org/search.json?${q}`).catch(() => null);
-  const id = ol?.docs?.[0]?.cover_i;
-  if (id) return `https://covers.openlibrary.org/b/id/${id}-M.jpg`;
-  const g = `intitle:${b.title}${b.author ? ` inauthor:${b.author}` : ''}`;
-  const gb = await json(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(g)}&maxResults=1`).catch(() => null);
-  const thumb = gb?.items?.[0]?.volumeInfo?.imageLinks?.thumbnail;
-  return thumb ? thumb.replace(/^http:/, 'https:') : null;
+  const author = cleanAuthor(b.author);
+  const titles = [...new Set([cleanTitle(b.title), mainTitle(b.title)].filter(Boolean))];
+  let failed = false;
+  const ask = (url) => json(url).catch(() => ((failed = true), null));
+  const tries = [];
+  for (const title of titles) {
+    if (author) tries.push(['ol', { title, author }]);
+    tries.push(['ol', { title }], ['gb', `intitle:${title}${author ? ` inauthor:${author}` : ''}`]);
+  }
+  for (const [where, q] of tries) {
+    if (where === 'ol') {
+      const ol = await ask(`https://openlibrary.org/search.json?${new URLSearchParams({ ...q, limit: '1', fields: 'cover_i' })}`);
+      const id = ol?.docs?.[0]?.cover_i;
+      if (id) return { url: `https://covers.openlibrary.org/b/id/${id}-L.jpg`, failed: false };
+    } else {
+      const gb = await ask(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=1&printType=books`);
+      const thumb = gb?.items?.[0]?.volumeInfo?.imageLinks?.thumbnail;
+      if (thumb) return { url: thumb.replace(/^http:/, 'https:').replace('&edge=curl', ''), failed: false };
+    }
+  }
+  return { url: null, failed };
 }
 
 // books: [{ title, author }]. cache: { key: { url, at } } from the last run.
@@ -37,7 +64,12 @@ export async function covers(books, cache = {}, now = Date.now(), find = lookup)
     const key = coverKey(b);
     if (next[key]) continue;
     let hit = cache[key];
-    if (!hit || (!hit.url && now - hit.at > RETRY_DAYS * 86400000)) hit = { url: await find(b), at: now };
+    if (!hit || (!hit.url && (hit.v !== VERSION || now - hit.at > RETRY_DAYS * 86400000))) {
+      const found = await find(b);
+      // A miss because a catalogue errored is not remembered, so the next run asks again.
+      hit = found.url || !found.failed ? { url: found.url, at: now, v: VERSION } : null;
+    }
+    if (!hit) continue;
     next[key] = hit;
     if (!hit.url) continue;
     const res = await fetch(hit.url).catch(() => null);

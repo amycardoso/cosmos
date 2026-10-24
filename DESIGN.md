@@ -79,6 +79,7 @@ Density is high but calm: figures sit on the black ground with no cards, separat
 - Black ground, pale-zone text, three belt colours with equal standing.
 - Quartile heat ramps (five steps of her own history) for every day and hour grid.
 - The same views for all three streams: day belts, an hour-by-weekday grid, a "now" line, a ranked list.
+- One section where the streams meet: a constellation of books, artists and shows, and each book's soundtrack.
 - No cards, no glows, no full-bleed imagery.
 
 ## Colors
@@ -125,7 +126,7 @@ A near-black field with pastel belts sampled from the UV Jupiter photograph, plu
 
 ## Layout
 
-A centred column up to 1440px with a fluid gutter (clamp(16px, 4vw, 56px)). The overview is two columns: the belts take the remaining width, the "now" aside is 300px. Stream sections use a 12-column grid with 48px row gaps and 56px column gaps; figures span 6 (half), 7 (wide) or the full row, and Leitura stacks the shelf and library map in the right five columns beside the hours grid and the fingerprints. Below 1100px every figure takes the full row and the aside sits under the belts; below 640px the nav wraps under the brand, the belts' labels move above each belt and the page opens on the month instead of the year. The header is sticky with a translucent space background.
+A centred column up to 1440px with a fluid gutter (clamp(16px, 4vw, 56px)). The page reads summary first, connections in the middle, details last: overview, Conexões, Leitura, Música, Telas. The overview is two columns: the belts take the remaining width, the "now" aside is 300px. Sections use a 12-column grid with 48px row gaps and 56px column gaps; figures span 5 (narrow), 6 (half), 7 (wide) or the full row. Conexões holds the constellation and the shared hours grid at full width; Leitura puts the shelf (7) beside the library map (5) above the fingerprints; Música puts the tracks (5) beside the artists (7); Telas puts the shows (7) beside a stack of feelings and films (5). Below 1100px every figure takes the full row and the aside sits under the belts; below 640px the nav wraps under the brand, the belts' labels move above each belt and the page opens on the month instead of the year. The header is sticky with a translucent space background.
 
 ## Elevation & Depth
 
@@ -138,12 +139,27 @@ Small, soft corners on data marks: 2px on grid cells, 3px on tiles and map squar
 ## Components
 
 - **Period control:** a pill radiogroup (semana, mês, ano) with arrow-key movement; the selected option inverts to pale zone on space. Changing it re-renders the belts, totals, hour grids, tracks, artists and feelings.
-- **Day belts:** an SVG grid per stream (53 week columns by 7 rows for a year, a strip of square days for a month, seven wide tiles for a week). Future days are outlined only. Hover or tap writes the day into a live readout line. On a period change, cells fill from 25% to full opacity left to right (520ms, cubic-bezier(.16,1,.3,1)), skipped under reduced motion.
-- **Hours grid:** 24 by 7 SVG, weekday labels at left, 0h, 6h, 12h and 18h on top, with a one-line peak sentence in the caption. On phones the cells tighten (11px, 2px gap) so the labels still render at 12px or more.
+- **Day belts:** an SVG grid per stream (53 week columns by 7 rows for a year, a strip of square days for a month, seven wide tiles for a week). Future days are outlined only. Hover or tap outlines that day in all three belts and writes all three values into the readout line.
+- **Hours grid ("Como o dia se divide"):** one 24 by 7 SVG for all three streams. Each hour is a cell split into three stripes (reading, music, screens), each on its own quartile ramp; a pill radiogroup (os três, leitura, música, telas) draws one stream alone in whole cells. Hover or tap names the hour and a level word per stream. One peak sentence per stream sits under the grid with its swatch.
+- **Constellation:** books, artists and shows as circles in their belt colour, sized by hours in the year. A solid line joins an artist to the book that was open while they played (thicker with more minutes); a dashed line joins a book to a show or film from the same weeks. Laid out once by a small force pass and label-collision pass, so it is still when it appears. Hover, tap or focus a star to dim everything outside its constellation and write one first-person sentence about it.
+- **Soundtrack:** under each fingerprint, a 6px bar on deep: one cyan stretch per artist heard while reading (full, 65% and 40% cyan), the rest silence, and a line with the minutes and the share read in silence. Time read before the music history began is left out and said so.
 - **Now lines:** a 14 by 6 belt swatch inline before the verb, the item in italics, metadata in haze, and an optional 3px meter in the belt colour.
-- **Shelf:** spines with height by pages and width by hours; every title stands rotated above its spine in haze, whole, never truncated. Open books stand apart, outlined, filled to progress; paused ones in polar rust.
+- **Shelf:** face out, like bookshelf.koplugin: each book stands by its cover (2:3), its height by pages, on shelves that wrap into more rows as the year fills. Finished books in the order she finished them; open ones stand apart, the unread part of the cover in shadow above a belt-coloured line at the page she reached, paused ones desaturated with a polar rust line. A book with no cover found is a pink-tinted tile with its whole title.
 - **Fingerprint:** one strip per book, one mark per ten pages, lighter where she lingered; re-read stretches get a rust mark below.
 - **Ranked lists:** rank, name, a belt-coloured bar and a value, separated by hairlines; artists flow into two columns on wide screens.
+
+## Motion
+
+Motion carries information and happens once; nothing loops except today's ring. Every effect uses cubic-bezier(.16,1,.3,1) and is skipped under reduced motion.
+
+- **Belts:** on load and on a period change, cells fill from 15% to full opacity left to right (560ms, up to 520ms of stagger), each belt 80ms behind the one above.
+- **Totals:** the lede's three totals count to their new value (900ms) instead of jumping.
+- **Today:** the pale ring around today's spot breathes to 25% opacity every 3.2s.
+- **Figures:** a figure below the fold rises 10px and fades in once when it reaches the screen. Figures already in view never hide.
+- **Hours grid:** hours light up from 0h to 23h (22ms apart).
+- **Shelf:** books rise onto the shelf the first time it is seen.
+- **Constellation:** stars fade in, then the lines draw from book to star.
+- **Menu:** the section on screen is marked in pale zone with an underline.
 
 ## Do's and Don'ts
 

@@ -2,7 +2,7 @@
 
 A private site with my year in reading, music, and series and films, in the colours of Hubble's ultraviolet Jupiter.
 
-![The site with sample data: three day-by-day belts for reading, music and screens, the period switch, and the reading, music and screens sections](docs/cosmos.gif)
+![The site with sample data: the three day-by-day belts lighting up the same day, the period switch, the constellation linking books to the music and shows around them, the shared hours grid, each book's soundtrack, and the music and screens sections](docs/cosmos.gif)
 
 <sub>Recorded with the sample data in `site/data/cosmos.js`.</sub>
 
@@ -16,10 +16,11 @@ A private site with my year in reading, music, and series and films, in the colo
 
 Every three hours, `.github/workflows/deploy.yml` runs `npm run build`, which:
 
-1. downloads KOReader's `statistics.sqlite3` from WebDAV (KOReader's own statistics cloud sync puts it there) and turns it into the Reading Atlas views: time per day, the hours grid, the shelf, the library by language and each book's fingerprint;
+1. downloads KOReader's `statistics.sqlite3` from WebDAV (KOReader's own statistics cloud sync puts it there) and turns it into the Reading Atlas views: time per day, the hours grid, the shelf, the library by language and each book's fingerprint. Covers come from Open Library (Google Books as a fallback), downloaded at build time and served from the site itself;
 2. asks Spotify for the latest plays and adds them to a history the job keeps, because Spotify only remembers the last 50;
 3. mirrors the Bingers library through `/v1/entries` and its change cursor, plus the library and the season of each show in progress;
-4. writes `dist/` with the real data in `dist/data/cosmos.js`, and deploys it to Cloudflare Pages.
+4. crosses the three timelines: what played on Spotify while each book was open, how much of each book was read in silence, and which shows shared their weeks with a book. Only those links reach the site, never the raw plays or sessions;
+5. writes `dist/` with the real data in `dist/data/cosmos.js`, and deploys it to Cloudflare Pages.
 
 If one source fails, the site keeps that source's last good read and says so in the footer.
 

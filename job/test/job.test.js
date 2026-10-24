@@ -88,6 +88,19 @@ test('compose pads cached day arrays and survives a missing source', () => {
   assert.deepEqual(d.periods.week.artists, []);
   assert.equal(d.recentTrack, null);
   assert.equal(d.synthetic, false);
+  assert.deepEqual(d.connections, { stars: [], links: [], soundtracks: {} });
+  assert.ok(!JSON.stringify(d).includes('timeline'), 'raw timelines never reach the site');
+});
+
+test('compose keeps populated source timelines private', () => {
+  const d = compose({
+    read: { data: { timeline: [{ title: 'Duna', sittings: [[NOW - 3600000, NOW]] }] }, status: 'ok', at: NOW },
+    listen: { data: { timeline: [[NOW - 60000, 1800000, 'Björk']], historySince: NOW - 7200000 }, status: 'ok', at: NOW },
+    watch: { data: { timeline: [[NOW - 60000, 50, 'Shōgun', 'episode']] }, status: 'ok', at: NOW },
+  }, span, NOW);
+  assert.ok(d.connections.soundtracks.Duna, 'the links are computed');
+  const json = JSON.stringify(d);
+  assert.ok(!json.includes('timeline') && !json.includes('sittings') && !json.includes('historySince'), 'raw timelines never reach the site');
 });
 
 test('periods reach back across the new year, the year stays this year', () => {
@@ -122,7 +135,7 @@ test('covers: one lookup per book, cached misses wait before trying again', asyn
   const { covers, coverKey } = await import('../src/covers.js');
   const books = [{ title: 'Piranesi', author: 'Susanna Clarke' }, { title: 'Piranesi', author: 'Susanna Clarke' }, { title: 'Sem capa', author: '' }];
   const asked = [];
-  const find = async (b) => (asked.push(b.title), null);
+  const find = async (b) => (asked.push(b.title), { url: null, failed: false });
   const first = await covers(books, {}, NOW, find);
   assert.deepEqual(asked, ['Piranesi', 'Sem capa']);
   assert.deepEqual(Object.keys(first.images), []);
@@ -131,6 +144,19 @@ test('covers: one lookup per book, cached misses wait before trying again', asyn
   await covers(books, first.cache, NOW + 15 * 86400000, find);
   assert.equal(asked.length, 4);
   assert.equal(coverKey(books[0]), 'piranesi|susanna clarke');
+  // A miss from an older lookup is tried again at once; one where a catalogue errored is not kept.
+  const old = { [coverKey(books[0])]: { url: null, at: NOW } };
+  const again = await covers([books[0]], old, NOW, async () => ({ url: null, failed: true }));
+  assert.deepEqual(again.cache, {});
+});
+
+test('covers: titles and authors as KOReader stores them', async () => {
+  const { cleanTitle, mainTitle, cleanAuthor } = await import('../src/covers.js');
+  assert.equal(cleanTitle('Torto Arado (Portuguese Edition)'), 'Torto Arado');
+  assert.equal(mainTitle('Duna: Edição especial [ebook]'), 'Duna');
+  assert.equal(mainTitle('O Avesso da Pele - Coleção X'), 'O Avesso da Pele');
+  assert.equal(cleanAuthor('Lispector, Clarice'), 'Clarice Lispector');
+  assert.equal(cleanAuthor('Neil Gaiman\nTerry Pratchett'), 'Neil Gaiman');
 });
 
 test('skoob: adds this year\'s finished books KOReader does not know', async () => {
@@ -156,4 +182,34 @@ test('bingers feelings: lists, single words and JSON strings', async () => {
   assert.deepEqual(feelingList('shocked'), ['shocked']);
   assert.deepEqual(feelingList(['amused', '["scared"]']), ['amused', 'scared']);
   assert.deepEqual(feelingList(null), []);
+});
+
+test('connections: what played during each book, silence, and shows in the same weeks', async () => {
+  const { connections, sittings } = await import('../src/connections.js');
+  const t = (iso) => Date.parse(iso);
+  // Two page turns two minutes apart are one sitting; one an hour later is another.
+  const s = sittings([{ start: t('2026-10-10T01:00:00Z'), seconds: 600 }, { start: t('2026-10-10T01:12:00Z'), seconds: 600 }, { start: t('2026-10-10T03:00:00Z'), seconds: 600 }]);
+  assert.deepEqual(s, [[t('2026-10-10T01:00:00Z'), t('2026-10-10T01:22:00Z')], [t('2026-10-10T03:00:00Z'), t('2026-10-10T03:10:00Z')]]);
+  const c = connections({
+    books: [
+      { title: 'Duna', sittings: [[t('2026-10-10T01:00:00Z'), t('2026-10-10T02:00:00Z')], [t('2026-10-12T01:00:00Z'), t('2026-10-12T01:30:00Z')]] },
+      { title: 'Antigo', sittings: [[t('2026-01-05T01:00:00Z'), t('2026-01-05T02:00:00Z')]] },
+    ],
+    plays: [
+      [t('2026-10-10T01:20:00Z'), 20 * 60000, 'Björk'], // 01:00 to 01:20, all during the book
+      [t('2026-10-10T02:10:00Z'), 20 * 60000, 'Radiohead'], // 01:50 to 02:10, half of it
+      [t('2026-10-11T12:00:00Z'), 60 * 60000, 'Björk'], // not while reading
+    ],
+    watched: [[t('2026-10-11T00:00:00Z'), 50, 'Shōgun', 'episode'], [t('2026-03-01T00:00:00Z'), 50, 'Dark', 'episode']],
+    since: t('2026-10-01T00:00:00Z'),
+  }, span);
+  const d = c.soundtracks.Duna;
+  assert.equal(d.covered, 90);
+  assert.equal(d.music, 30);
+  assert.deepEqual(d.artists, [{ name: 'Björk', minutes: 20 }, { name: 'Radiohead', minutes: 10 }]);
+  // Read before the music history began: nothing can be said about its soundtrack.
+  assert.equal(c.soundtracks.Antigo.covered, 0);
+  const pairs = c.links.map((l) => `${l.a} ${l.b} ${l.how}`).sort();
+  assert.deepEqual(pairs, ['book:Duna artist:Björk during', 'book:Duna artist:Radiohead during', 'book:Duna show:Shōgun weeks']);
+  assert.equal(c.stars.find((x) => x.id === 'artist:Björk').hours, 1.3); // all the time with her this year
 });

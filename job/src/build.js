@@ -12,6 +12,7 @@ import { fetchSpotify, music } from './spotify.js';
 import { fetchBingers, screens } from './bingers.js';
 import { covers, coverKey } from './covers.js';
 import { withSkoob } from './skoob.js';
+import { connections } from './connections.js';
 
 const env = process.env;
 const has = (...keys) => keys.every((k) => env[k]);
@@ -79,6 +80,7 @@ export function compose({ read, listen, watch }, span, now) {
     shows: s.shows || [],
     feelings: periods.year.feelings,
     watchlist: s.watchlist || {},
+    connections: connections({ books: r.timeline, plays: m.timeline, watched: s.timeline, since: m.historySince ?? null }, span),
     periods,
   };
 }

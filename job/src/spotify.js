@@ -76,6 +76,9 @@ export function music(history, nowPlaying, span) {
     // The history starts on the first day the job ran; before that there is nothing to count.
     listeningSince: firstDay,
     recentTrack: recent,
+    // For the connections only: [ended at, ms, first artist]. The site never receives it.
+    timeline: thisYear.map((p) => [p.at, p.ms, p.artists[0]]),
+    historySince: history.length ? history[0].at : null,
     periods: {
       year: lists(thisYear),
       month: lists(periodPlays(PERIOD_DAYS.month)),
