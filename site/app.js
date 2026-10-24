@@ -266,7 +266,7 @@
     const spine = (b, fill, frac) => {
       const bw = w(b), bh = h(b);
       const g = el('svg:g');
-      g.append(el('svg:title', { text: `${b.title}, ${b.author}. ${b.pages} páginas, ${num(b.hours, 1)} h${frac < 1 ? `, ${Math.round(frac * 100)}%` : ''}` }));
+      g.append(el('svg:title', { text: `${b.title}, ${b.author}. ${b.pages} páginas${b.hours ? `, ${num(b.hours, 1)} h` : ''}${frac < 1 ? `, ${Math.round(frac * 100)}%` : ''}` }));
       if (frac < 1) g.append(el('svg:rect', { x, y: base - bh, width: bw, height: bh, rx: 2, fill: 'none', stroke: fill, 'stroke-opacity': 0.55 }));
       g.append(el('svg:rect', { x, y: base - bh * frac, width: bw, height: bh * frac, rx: 2, fill }));
       const lines = labels.get(b);
@@ -383,7 +383,7 @@
     if (!Object.keys(f).length) return emptyNote(host, 'Nenhum sentimento marcado no período.');
     const max = Math.max(...Object.values(f));
     Object.entries(f).sort((a, b) => b[1] - a[1]).forEach(([k, v]) =>
-      host.append(el('li', { html: `<span>${names[k]}</span><span class="bar" style="width:${(v / max) * 100}%"></span><span class="v">${v}</span>` })));
+      host.append(el('li', { html: `<span>${esc(names[k] || k)}</span><span class="bar" style="width:${(v / max) * 100}%"></span><span class="v">${v}</span>` })));
   }
 
   function renderFilms() {

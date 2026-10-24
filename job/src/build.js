@@ -11,6 +11,7 @@ import { fetchStatistics, openStatistics, reading } from './koreader.js';
 import { fetchSpotify, music } from './spotify.js';
 import { fetchBingers, screens } from './bingers.js';
 import { covers, coverKey } from './covers.js';
+import { withSkoob } from './skoob.js';
 
 const env = process.env;
 const has = (...keys) => keys.every((k) => env[k]);
@@ -103,6 +104,9 @@ export async function main() {
     await state.put('bingers-mirror', fetched.mirror);
     return screens(fetched, span);
   }, state, span);
+
+  // Books finished this year before KOReader, imported from Skoob by hand.
+  if (read.data) read.data = withSkoob(read.data, await state.get('skoob-read'), span);
 
   const data = compose({ read, listen, watch }, span, now);
   await rm('dist', { recursive: true, force: true });

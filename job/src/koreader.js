@@ -36,6 +36,9 @@ const lang = (l) => {
   return !code || code === 'n/a' || code === 'und' ? 'outro' : code;
 };
 
+// Two files of one book often differ in accents, case or subtitle; compare the main title only.
+export const sameBook = (title) => (title || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/\s[-–:]\s|:\s/)[0].replace(/[^a-z0-9]+/g, ' ').trim();
+
 export function reading(db, span, nowMs) {
   const books = new Map(rows(db, 'SELECT id, title, authors, pages, language, highlights FROM book').map((b) => [b.id, { ...b, stats: [] }]));
   // page_stat_data keeps the page count each page was read under; rescale to the book's current count.
@@ -50,7 +53,7 @@ export function reading(db, span, nowMs) {
   // Two files of the same book (another edition or a re-download) count as one book.
   const merged = new Map();
   for (const b of books.values()) {
-    const key = `${(b.title || '').trim().toLowerCase()}|${(b.authors || '').split('\n')[0].trim().toLowerCase()}`;
+    const key = sameBook(b.title);
     const into = merged.get(key);
     if (!into) { merged.set(key, b); continue; }
     const pages = Math.max(into.pages || 0, b.pages || 0);

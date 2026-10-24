@@ -33,6 +33,20 @@ export async function get(path, env) {
 const first = (...v) => v.find((x) => x !== undefined && x !== null);
 const listIn = (page) => first(page.data, page.items, page.entries, page.results, Array.isArray(page) ? page : null) || [];
 
+// Feelings come as a list, a single word, or a list serialised as a JSON string ('["touched","amused"]').
+export function feelingList(v) {
+  if (v == null || v === '') return [];
+  if (Array.isArray(v)) return v.flatMap(feelingList);
+  if (typeof v === 'string' && v.trim().startsWith('[')) {
+    try {
+      return feelingList(JSON.parse(v));
+    } catch {
+      return [];
+    }
+  }
+  return [String(v).trim().toLowerCase()];
+}
+
 // An entry is one episode or one movie. The real API names it by entity_kind and
 // entity_id and carries no season or episode number; those come from the episodes read.
 export function normEntry(e) {
@@ -51,7 +65,7 @@ export function normEntry(e) {
     plays: first(e.plays, e.watched ? 1 : 0),
     watched: first(e.watched, (e.plays || 0) > 0),
     rating: first(e.rating, e.my_rating, null),
-    feelings: first(e.feelings, e.my_feelings, e.feeling ? [e.feeling] : []),
+    feelings: feelingList(first(e.feelings, e.my_feelings, e.feeling)),
     minutes: first(e.runtime_minutes, e.runtime, null),
     deleted: Boolean(first(e.deleted, e.tombstone, e.deleted_at, false)),
   };
@@ -124,7 +138,7 @@ export async function episodes(env, titleId) {
     season: first(e.season, e.season_number, null),
     episode: first(e.episode, e.number, e.episode_number),
     watched: Boolean(first(e.watched, e.my_watched, (e.plays || 0) > 0, false)),
-    feelings: first(e.feelings, e.my_feelings, []),
+    feelings: feelingList(first(e.feelings, e.my_feelings, e.feeling)),
   }));
 }
 
