@@ -124,7 +124,7 @@ test('covers: one lookup per book, cached misses wait before trying again', asyn
   const { covers, coverKey } = await import('../src/covers.js');
   const books = [{ title: 'Piranesi', author: 'Susanna Clarke' }, { title: 'Piranesi', author: 'Susanna Clarke' }, { title: 'Sem capa', author: '' }];
   const asked = [];
-  const find = async (b) => (asked.push(b.title), null);
+  const find = async (b) => (asked.push(b.title), { url: null, failed: false });
   const first = await covers(books, {}, NOW, find);
   assert.deepEqual(asked, ['Piranesi', 'Sem capa']);
   assert.deepEqual(Object.keys(first.images), []);
@@ -133,6 +133,19 @@ test('covers: one lookup per book, cached misses wait before trying again', asyn
   await covers(books, first.cache, NOW + 15 * 86400000, find);
   assert.equal(asked.length, 4);
   assert.equal(coverKey(books[0]), 'piranesi|susanna clarke');
+  // A miss from an older lookup is tried again at once; one where a catalogue errored is not kept.
+  const old = { [coverKey(books[0])]: { url: null, at: NOW } };
+  const again = await covers([books[0]], old, NOW, async () => ({ url: null, failed: true }));
+  assert.deepEqual(again.cache, {});
+});
+
+test('covers: titles and authors as KOReader stores them', async () => {
+  const { cleanTitle, mainTitle, cleanAuthor } = await import('../src/covers.js');
+  assert.equal(cleanTitle('Torto Arado (Portuguese Edition)'), 'Torto Arado');
+  assert.equal(mainTitle('Duna: Edição especial [ebook]'), 'Duna');
+  assert.equal(mainTitle('O Avesso da Pele - Coleção X'), 'O Avesso da Pele');
+  assert.equal(cleanAuthor('Lispector, Clarice'), 'Clarice Lispector');
+  assert.equal(cleanAuthor('Neil Gaiman\nTerry Pratchett'), 'Neil Gaiman');
 });
 
 test('skoob: adds this year\'s finished books KOReader does not know', async () => {
