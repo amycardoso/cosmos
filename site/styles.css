@@ -39,13 +39,15 @@ html{scrollbar-color:#2A2838 var(--space)}
 .skip:focus{left:8px}
 i.sw{display:inline-block;width:14px;height:6px;border-radius:3px;margin-right:8px;vertical-align:2px}
 .sw--read{background:var(--read)}.sw--music{background:var(--music)}.sw--screen{background:var(--screen)}
+.sw--all{background:linear-gradient(90deg,var(--read) 0 33%,var(--music) 33% 66%,var(--screen) 66%)}
 
 /* Header */
 .top{display:flex;align-items:center;gap:32px;padding:18px var(--gutter);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;background:rgba(8,8,12,.92);backdrop-filter:blur(8px)}
 .brand{display:flex;align-items:center;gap:12px;font:600 20px/1 var(--display);text-decoration:none;letter-spacing:-.01em}
 .brand img{width:32px;height:auto;border-radius:50%}
 .sections{display:flex;gap:24px;font-size:15px;color:var(--haze)}
-.sections a{text-decoration:none}.sections a:hover{color:var(--zone)}
+.sections a{text-decoration:none;padding:4px 0;border-bottom:1px solid transparent;transition:color .2s,border-color .2s}.sections a:hover{color:var(--zone)}
+.sections a[aria-current]{color:var(--zone);border-bottom-color:rgba(237,241,250,.5)}
 .period{margin-left:auto;display:flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:999px}
 .period button{background:none;border:0;padding:6px 14px;border-radius:999px;font-size:14px;color:var(--haze);cursor:pointer}
 .period button[aria-checked=true]{background:var(--zone);color:var(--space);font-weight:600}
@@ -66,6 +68,12 @@ i.sw{display:inline-block;width:14px;height:6px;border-radius:3px;margin-right:8
 .band__label small{color:var(--haze);font-size:13px}
 .band svg{display:block;width:100%;height:auto;cursor:crosshair;overflow:visible}
 .bands__readout{grid-column:2;min-height:22px;font-size:14px;color:var(--haze)}
+.bands__readout b,.day__readout b{color:var(--zone);font-weight:600}
+.bands__readout .read,.day__readout .read{color:var(--read)}.bands__readout .music,.day__readout .music{color:var(--music)}.bands__readout .screen,.day__readout .screen{color:var(--screen)}
+.band rect.hit{stroke:var(--zone);stroke-width:1.5px;vector-effect:non-scaling-stroke}
+/* Today breathes slowly: the only thing that moves while the page is still. */
+.today-ring{animation:breathe 3.2s ease-in-out infinite}
+@keyframes breathe{50%{opacity:.25}}
 
 .now{display:flex;flex-direction:column;gap:22px}
 .now__planet{width:100%;max-width:260px;height:auto;align-self:center;border-radius:50%}
@@ -82,16 +90,45 @@ i.sw{display:inline-block;width:14px;height:6px;border-radius:3px;margin-right:8
 
 /* Streams */
 .stream{max-width:1440px;margin:0 auto;padding:56px var(--gutter) 64px;border-bottom:1px solid var(--line)}
-.stream--read{--c:var(--read)}.stream--music{--c:var(--music)}.stream--screen{--c:var(--screen)}
+.stream--links{--c:var(--zone)}.stream--read{--c:var(--read)}.stream--music{--c:var(--music)}.stream--screen{--c:var(--screen)}
 .stream__head{display:flex;align-items:baseline;gap:20px;flex-wrap:wrap;margin-bottom:36px}
 .stream__head h2{font-size:clamp(32px,3.4vw,44px);color:var(--c);letter-spacing:-.035em}
 .stream__head p{color:var(--haze);font-size:17px}
 .stream__grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:48px 56px}
 .fig{grid-column:span 6;display:flex;flex-direction:column;gap:18px;min-width:0}
-.fig--wide{grid-column:1/span 7}.fig--narrow{grid-column:span 5}.fig--full{grid-column:1/-1}
+.fig--wide{grid-column:span 7}.fig--narrow{grid-column:span 5}.fig--full{grid-column:1/-1}
 .fig-stack{grid-column:8/-1;grid-row:1/span 2;display:flex;flex-direction:column;gap:48px;min-width:0}
 .fig figcaption h3{font-size:19px;letter-spacing:-.01em}
 .fig figcaption p{margin-top:4px;color:var(--haze);font-size:14px;max-width:56ch}
+/* Figures below the fold rise in once; .pre is only set by the script, so without it they simply show. */
+.fig{transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1)}
+.fig.pre{opacity:0;transform:translateY(10px)}
+
+/* Connections: the constellation */
+.sky-fig figcaption p{max-width:72ch}
+.sky svg{display:block;width:100%;max-width:1180px;height:auto;overflow:visible;touch-action:manipulation}
+.sky text{font:13px var(--text);fill:var(--haze);pointer-events:none}
+.sky .edge{stroke:rgba(237,241,250,.24);transition:stroke .25s,stroke-opacity .25s}
+.sky .edge--weeks{stroke-dasharray:3 4}
+.sky .star{cursor:pointer;transition:opacity .25s}
+.sky .star:focus-visible{outline:none}
+.sky .star:focus-visible circle+circle{stroke:var(--zone);stroke-width:2}
+.sky svg.focus .star.dim{opacity:.16}
+.sky svg.focus .edge{stroke-opacity:.35}
+.sky svg.focus .edge.on{stroke:var(--zone);stroke-opacity:.8}
+.sky__readout{min-height:3em;font-size:15px}
+.sky__readout small{display:block;color:var(--haze);font-size:13px;margin-top:2px}
+
+/* How the day divides: one grid, three stripes per hour */
+.day__controls{display:flex}
+.pick{display:flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:999px;flex-wrap:wrap}
+.pick button{background:none;border:0;padding:5px 12px;border-radius:999px;font-size:13px;color:var(--haze);cursor:pointer}
+.pick button[aria-checked=true]{background:var(--zone);color:var(--space);font-weight:600}
+.day svg{display:block;width:100%;max-width:1060px;height:auto;cursor:crosshair}
+.day text{font:12px var(--text);fill:var(--dim)}
+.day g.hit .cell{stroke:var(--zone);stroke-width:1.25}
+.day__readout{min-height:22px;font-size:14px;color:var(--haze)}
+.peaks{display:flex;flex-wrap:wrap;gap:6px 28px;font-size:14px;color:var(--haze)}
 
 /* Hour x weekday grid */
 .clock svg{display:block;width:100%;max-width:620px;height:auto}
@@ -109,6 +146,15 @@ i.sw{display:inline-block;width:14px;height:6px;border-radius:3px;margin-right:8
 .prints .meta{color:var(--haze);text-align:right}
 .prints svg{grid-column:2/-1;display:block;width:100%;height:22px}
 .prints .note{grid-column:2/-1;color:var(--haze);font-size:13px}
+.prints li[hidden]{display:none}
+.prints .cover{grid-row:1/span 5}
+/* The soundtrack: what played while reading, the rest of the bar is silence */
+.ost{grid-column:2/-1;display:flex;gap:2px;height:6px;margin-top:4px;border-radius:3px;background:var(--deep);overflow:hidden}
+.ost i{display:block;height:100%}
+.ost__note{grid-column:2/-1;color:var(--haze);font-size:13px}
+.more{align-self:flex-start;background:none;border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:14px;color:var(--haze);cursor:pointer}
+.more:hover{color:var(--zone);border-color:rgba(237,241,250,.3)}
+.shelf .spine{transform-box:fill-box;transform-origin:bottom}
 
 /* Library map */
 .map{display:flex;flex-wrap:wrap;gap:20px 28px}
@@ -130,8 +176,8 @@ i.sw{display:inline-block;width:14px;height:6px;border-radius:3px;margin-right:8
 .tracks small{color:var(--haze);font-size:13px;margin-left:6px}
 .tracks .plays{color:var(--haze);font-size:13px}
 
-/* Artists: ranked, two columns on wide screens */
-.artists{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(var(--rows,5),auto);grid-auto-flow:column;column-gap:56px}
+/* Artists: ranked */
+.artists{display:grid;grid-template-columns:minmax(0,1fr)}
 .artists li{display:grid;grid-template-columns:28px 150px minmax(0,1fr) 52px;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);font-size:15px}
 .artists .n{color:var(--dim);font-size:13px}
 .artists .name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -189,4 +235,4 @@ i.sw{display:inline-block;width:14px;height:6px;border-radius:3px;margin-right:8
   .stream__grid{gap:40px}
   .feel li{grid-template-columns:80px minmax(0,1fr) 24px}
 }
-@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.today-ring{animation:none}.fig{transition:none}}

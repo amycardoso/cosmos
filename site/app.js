@@ -68,8 +68,9 @@
     $('[data-title]').innerHTML =
       period === 'year' ? `${D.year} <span>até ${today.getUTCDate()} de ${MONTHS[today.getUTCMonth()]}</span>`
       : period === 'month' ? 'Últimos 30 dias' : 'Últimos 7 dias';
-    const t = STREAMS.map((s) => fmtMin(sum(s.days, r)));
-    $('[data-lede]').innerHTML = `<b class="r">${t[0]}</b> lendo, <b class="m">${t[1]}</b> ouvindo e <b class="s">${t[2]}</b> de séries e filmes.`;
+    const lede = $('[data-lede]');
+    if (!lede.children.length) lede.innerHTML = '<b class="r"></b> lendo, <b class="m"></b> ouvindo e <b class="s"></b> de séries e filmes.';
+    STREAMS.forEach((s, k) => countTo(lede.children[k], sum(s.days, r)));
 
     const months = $('[data-months]');
     months.textContent = '';
@@ -83,8 +84,37 @@
     } else {
       months.append(el('span', { text: fmtDay(r[0]), style: 'left:0' }), el('span', { text: 'hoje', style: 'right:0' }));
     }
-    $('[data-readout]').textContent = 'Passe o dedo ou o mouse pelas faixas para ver cada dia.';
+    $('[data-readout]').textContent = 'Passe o dedo ou o mouse pelas faixas para ver os três hábitos de cada dia.';
+    hit = null;
     renderLines(r);
+  }
+
+  // Totals count from where they were to the new value, so a period change reads as a change.
+  function countTo(node, to) {
+    const from = +(node.dataset.v || 0);
+    node.dataset.v = to;
+    if (REDUCED || from === to) { node.textContent = fmtMin(to); return; }
+    const t0 = performance.now();
+    const step = (t) => {
+      if (+node.dataset.v !== to) return; // a newer count took over
+      const p = Math.min(1, (t - t0) / 900), e = 1 - Math.pow(1 - p, 4);
+      node.textContent = fmtMin(Math.round(from + (to - from) * e));
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  // One day in focus lights up in all three belts, and the readout gives all three numbers.
+  let hit = null;
+  function highlightDay(i) {
+    if (i === hit) return;
+    hit = i;
+    STREAMS.forEach((s) => {
+      s.svg?.querySelector('rect.hit')?.classList.remove('hit');
+      s.svg?.querySelector(`[data-i="${i}"]`)?.classList.add('hit');
+    });
+    const v = (s) => (s.days[i] ? fmtMin(s.days[i]) : 'nada');
+    $('[data-readout]').innerHTML = `<b>${fmtDay(i)}</b> · ${STREAMS.map((s) => `<span class="${s.key}">${s.name.toLowerCase()} ${v(s)}</span>`).join(' · ')}`;
   }
 
   function renderBand(s, [from, to]) {
@@ -126,23 +156,25 @@
       today.setAttribute('stroke-width', 2.5 * k);
       const [x, y, w, h] = ['x', 'y', 'width', 'height'].map((a) => +today.getAttribute(a));
       const o = 2.5 * k;
-      svg.append(el('svg:rect', { x: x - o, y: y - o, width: w + 2 * o, height: h + 2 * o, rx: 3 * k, fill: 'none', stroke: '#EDF1FA', 'stroke-width': 1.25 * k, 'pointer-events': 'none' }));
+      svg.append(el('svg:rect', { class: 'today-ring', x: x - o, y: y - o, width: w + 2 * o, height: h + 2 * o, rx: 3 * k, fill: 'none', stroke: '#EDF1FA', 'stroke-width': 1.25 * k, 'pointer-events': 'none' }));
     }
     // Cells fill in from left to right when the period changes.
     if (!REDUCED) {
       const rects = [...svg.querySelectorAll('rect[data-i]')];
-      rects.forEach((rc, k) => rc.animate([{ opacity: 0.25 }, { opacity: 1 }], { duration: 520, delay: Math.round((+rc.getAttribute('x') / svg.viewBox.baseVal.width) * 360), easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' }));
+      // Like the day moving across the planet, each belt a beat behind the one above.
+      const row = STREAMS.indexOf(s);
+      rects.forEach((rc) => rc.animate([{ opacity: 0.15 }, { opacity: 1 }], { duration: 560, delay: Math.round((+rc.getAttribute('x') / svg.viewBox.baseVal.width) * 520) + row * 80, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' }));
     }
     svg.setAttribute('role', 'img');
     svg.setAttribute('aria-label', `${s.name}: ${fmtMin(total)} no período, dia a dia.`);
     const show = (e) => {
       const i = e.target.getAttribute && e.target.getAttribute('data-i');
       if (i === null || i === '' || i === undefined) return;
-      const v = s.days[+i];
-      $('[data-readout]').textContent = `${fmtDay(+i)} · ${s.name.toLowerCase()}: ${v ? fmtMin(v) : 'nada'}`;
+      highlightDay(+i);
     };
     svg.addEventListener('pointermove', show);
     svg.addEventListener('pointerdown', show);
+    s.svg = svg;
     host.append(svg);
   }
 
@@ -193,31 +225,200 @@
     $('[data-screen-line]').textContent = `${fmtMin(sum(D.watchingDays, r))} ${label}. ${plural(films, 'filme', 'filmes')} no ano.`;
   }
 
-  // ---------- Hour x weekday ----------
-  function renderClock(key, grid, peakSel, verb) {
-    const host = $(`[data-clock="${key}"]`);
+  // ---------- Hour x weekday, the three habits together ----------
+  // Each hour of the week is a cell split in three stripes: reading, music, screens,
+  // each on its own quartile ramp. Picking one stream draws it alone, in whole cells.
+  let dayShow = 'all';
+  const LEVEL_WORDS = ['nada', 'pouco', 'às vezes', 'muito', 'o mais forte'];
+  function renderDay(sweep = true) {
+    const host = $('[data-day]');
     host.textContent = '';
-    const ramp = RAMP(COLORS[key]);
-    const clean = grid.map((row) => row.map((v) => (v < 0.1 ? 0 : v)));
-    const qs = quartiles(clean.flat());
-    // On phones the grid is drawn tighter so its labels render at 12px or more.
-    const small = window.matchMedia('(max-width: 640px)').matches;
-    const cell = small ? 11 : 14, gap = small ? 2 : 3, left = small ? 34 : 40, top = small ? 18 : 22;
-    const svg = el('svg:svg', { viewBox: `0 0 ${left + 24 * (cell + gap)} ${top + 7 * (cell + gap)}`, role: 'img' });
-    const fs = small ? 'font-size:13px' : '';
-    [0, 6, 12, 18].forEach((h) => svg.append(el('svg:text', { x: left + h * (cell + gap), y: 12, text: `${h}h`, style: fs })));
-    let best = [0, 0, 0];
-    clean.forEach((row, d) => {
-      svg.append(el('svg:text', { x: 0, y: top + d * (cell + gap) + cell - 2, text: DOW[d], style: fs }));
-      row.forEach((v, h) => {
-        if (v > best[2] && v > 0) best = [d, h, v];
-        svg.append(el('svg:rect', { x: left + h * (cell + gap), y: top + d * (cell + gap), width: cell, height: cell, rx: 2, fill: ramp[level(v, qs)] }, [el('svg:title', { text: `${DOW[d]}, ${h}h` })]));
-      });
+    const P = D.periods[period];
+    const grids = { read: P.readingClock, music: P.listeningClock, screen: P.watchingClock };
+    const levels = {};
+    STREAMS.forEach((s) => {
+      const clean = grids[s.key].map((row) => row.map((v) => (v < 0.1 ? 0 : v)));
+      const qs = quartiles(clean.flat());
+      levels[s.key] = clean.map((row) => row.map((v) => level(v, qs)));
     });
-    const peak = best[2] > 0 ? `Mais forte ${DOW_LONG[best[0]]}, por volta das ${best[1]}h.` : 'Nada no período.';
-    svg.setAttribute('aria-label', `Horas da semana em que ${verb}. ${peak}`);
+    const small = window.matchMedia('(max-width: 640px)').matches;
+    const cw = small ? 12 : 27, ch = small ? 14 : 18, gap = small ? 2 : 4, left = small ? 30 : 40, top = 22;
+    const svg = el('svg:svg', { viewBox: `0 0 ${left + 24 * (cw + gap)} ${top + 7 * (ch + gap)}`, role: 'img' });
+    const fs = small ? 'font-size:11px' : '';
+    [0, 6, 12, 18].forEach((h) => svg.append(el('svg:text', { x: left + h * (cw + gap), y: 12, text: `${h}h`, style: fs })));
+    const shown = dayShow === 'all' ? STREAMS : STREAMS.filter((s) => s.key === dayShow);
+    const sw = (cw - (shown.length - 1)) / shown.length;
+    for (let d = 0; d < 7; d++) {
+      svg.append(el('svg:text', { x: 0, y: top + d * (ch + gap) + ch - 3, text: DOW[d], style: fs }));
+      for (let h = 0; h < 24; h++) {
+        const g = el('svg:g', { 'data-d': d, 'data-h': h });
+        shown.forEach((s, k) => g.append(el('svg:rect', { x: left + h * (cw + gap) + k * (sw + 1), y: top + d * (ch + gap), width: sw, height: ch, rx: 1.5, fill: RAMP(COLORS[s.key])[levels[s.key][d][h]] })));
+        // A transparent cover over the whole cell takes the pointer.
+        g.append(el('svg:rect', { class: 'cell', x: left + h * (cw + gap) - gap / 2, y: top + d * (ch + gap) - gap / 2, width: cw + gap, height: ch + gap, fill: 'transparent' }));
+        if (sweep && !REDUCED) g.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 420, delay: h * 22 + d * 6, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' });
+        svg.append(g);
+      }
+    }
+    const readout = $('[data-day-readout]');
+    readout.textContent = 'Passe pela grade para ver uma hora da semana.';
+    const show = (e) => {
+      const g = e.target.closest && e.target.closest('g[data-d]');
+      if (!g) return;
+      const d = +g.dataset.d, h = +g.dataset.h;
+      svg.querySelector('.hit')?.classList.remove('hit');
+      g.classList.add('hit');
+      readout.innerHTML = `<b>${DOW[d]}, ${h}h</b> · ${STREAMS.map((s) => `<span class="${s.key}">${s.name.toLowerCase()}: ${LEVEL_WORDS[levels[s.key][d][h]]}</span>`).join(' · ')}`;
+    };
+    svg.addEventListener('pointermove', show);
+    svg.addEventListener('pointerdown', show);
     host.append(svg);
-    $(peakSel).textContent = peak;
+
+    // One peak sentence per stream, under the grid.
+    const verbs = { read: 'Leio', music: 'Ouço', screen: 'Assisto' };
+    const peaks = [];
+    STREAMS.forEach((s) => {
+      let best = [0, 0, 0];
+      grids[s.key].forEach((row, d) => row.forEach((v, h) => { if (v >= 0.1 && v > best[2]) best = [d, h, v]; }));
+      const line = best[2] > 0 ? `${verbs[s.key]} mais ${DOW_LONG[best[0]]}, por volta das ${best[1]}h.` : `${s.name}: nada no período.`;
+      $(`[data-${s.key}-peak]`).textContent = line;
+      peaks.push(line);
+    });
+    svg.setAttribute('aria-label', `As horas da semana dos três hábitos. ${peaks.join(' ')}`);
+  }
+  const picks = [...document.querySelectorAll('[data-show]')];
+  function setDayShow(v) {
+    dayShow = v;
+    picks.forEach((b) => { b.setAttribute('aria-checked', String(b.dataset.show === v)); b.tabIndex = b.dataset.show === v ? 0 : -1; });
+    renderDay(false);
+  }
+  picks.forEach((b, i) => {
+    b.addEventListener('click', () => setDayShow(b.dataset.show));
+    b.addEventListener('keydown', (e) => {
+      const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (!d) return;
+      const nb = picks[(i + d + picks.length) % picks.length];
+      nb.focus();
+      setDayShow(nb.dataset.show);
+    });
+  });
+
+  // ---------- Connections ----------
+  const KIND = { book: 'read', artist: 'music', show: 'screen', film: 'screen' };
+  function renderSky() {
+    const host = $('[data-sky]');
+    host.textContent = '';
+    const C = D.connections || { stars: [], links: [] };
+    const readout = $('[data-sky-readout]');
+    const books = C.stars.filter((x) => x.kind === 'book').length;
+    $('[data-links-line]').textContent = C.links.length
+      ? `${plural(books, 'livro ligado', 'livros ligados')} a ${plural(C.stars.length - books, 'artista, série ou filme', 'artistas, séries e filmes')}.`
+      : '';
+    if (!C.links.length) {
+      const since = D.sources?.music?.since;
+      readout.textContent = '';
+      return emptyNote(host, `As estrelas aparecem quando houver música tocando durante a leitura${since > 0 ? `; o histórico de música começa em ${fmtDay(since)}` : ''}.`);
+    }
+    // A small force layout, run once before drawing so the sky is still when it appears.
+    const narrow = (host.clientWidth || 900) < 640;
+    const W = narrow ? 420 : 1000, H = narrow ? 620 : 540;
+    const stars = C.stars.map((x, i) => ({ ...x, i, r: Math.min(20, 3.5 + Math.sqrt(x.hours || 0) * 1.8) }));
+    const byId = new Map(stars.map((x) => [x.id, x]));
+    const links = C.links.map((l) => ({ ...l, a: byId.get(l.a), b: byId.get(l.b) })).filter((l) => l.a && l.b);
+    const rnd = (() => { let a = 7; return () => ((a = (a * 16807) % 2147483647) / 2147483647); })();
+    const home = { book: [0.35, 0.5], artist: [0.6, 0.4], show: [0.65, 0.65], film: [0.65, 0.65] };
+    stars.forEach((x) => { x.x = (home[x.kind][0] + (rnd() - 0.5) * 0.4) * W; x.y = (home[x.kind][1] + (rnd() - 0.5) * 0.5) * H; });
+    for (let it = 0; it < 500; it++) {
+      const k = 1 - it / 500;
+      for (const a of stars) for (const b of stars) {
+        if (a === b) continue;
+        const dx = a.x - b.x, dy = a.y - b.y, d2 = Math.max(60, dx * dx + dy * dy);
+        a.x += (dx * 52 / d2) * k; a.y += (dy * 52 / d2) * k;
+      }
+      for (const l of links) {
+        const dx = l.b.x - l.a.x, dy = l.b.y - l.a.y, d = Math.hypot(dx, dy) || 1;
+        const f = (d - 110) * 0.012 * k;
+        l.a.x += (dx / d) * f; l.a.y += (dy / d) * f; l.b.x -= (dx / d) * f; l.b.y -= (dy / d) * f;
+      }
+      for (const x of stars) { x.x += (W / 2 - x.x) * 0.004; x.y += (H / 2 - x.y) * 0.006; }
+    }
+    // Stretch to fill the sky, keeping room for labels on the right.
+    const xs = stars.map((x) => x.x), ys = stars.map((x) => x.y);
+    const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+    const padR = narrow ? 120 : 170;
+    stars.forEach((x) => { x.x = 24 + ((x.x - x0) / (x1 - x0 || 1)) * (W - 24 - padR); x.y = 28 + ((x.y - y0) / (y1 - y0 || 1)) * (H - 56); });
+    // Then nudge stars apart until no name runs into another star or name.
+    const box = (x) => [x.x - x.r - 2, x.y - Math.max(x.r, 9) - 2, x.x + x.r + 8 + x.name.length * 7, x.y + Math.max(x.r, 9) + 2];
+    for (let it = 0; it < 300; it++) {
+      let moved = false;
+      for (const a of stars) for (const b of stars) {
+        if (a.i >= b.i) continue;
+        const [ax0, ay0, ax1, ay1] = box(a), [bx0, by0, bx1, by1] = box(b);
+        const ox = Math.min(ax1, bx1) - Math.max(ax0, bx0), oy = Math.min(ay1, by1) - Math.max(ay0, by0);
+        if (ox <= 0 || oy <= 0) continue;
+        // Names run sideways, so moving up or down frees them fastest.
+        const dir = a.y <= b.y ? -1 : 1, step = Math.min(oy, 12) / 2 + 0.5;
+        a.y += dir * step; b.y -= dir * step;
+        moved = true;
+      }
+      stars.forEach((x) => (x.y = Math.max(16, Math.min(H - 16, x.y))));
+      if (!moved) break;
+    }
+
+    const svg = el('svg:svg', { viewBox: `0 0 ${W} ${H}`, role: 'group', 'aria-label': 'Constelação dos livros, artistas e séries que dividiram o meu tempo' });
+    const eg = el('svg:g'), ng = el('svg:g');
+    svg.append(eg, ng);
+    links.forEach((l) => {
+      l.el = el('svg:line', { class: `edge${l.how === 'weeks' ? ' edge--weeks' : ''}`, x1: l.a.x, y1: l.a.y, x2: l.b.x, y2: l.b.y, 'stroke-width': l.how === 'during' ? Math.min(4, 0.8 + l.minutes / 110) : 1 });
+      eg.append(l.el);
+    });
+    stars.forEach((x) => {
+      const g = el('svg:g', { class: 'star', tabindex: 0, role: 'button', 'aria-label': `${x.name}, ${num(x.hours, 1)} h` });
+      g.append(el('svg:circle', { cx: x.x, cy: x.y, r: x.r + 8, fill: 'transparent' }));
+      g.append(el('svg:circle', { cx: x.x, cy: x.y, r: x.r, fill: COLORS[KIND[x.kind]] }));
+      g.append(el('svg:text', { x: x.x + x.r + 6, y: x.y + 4, text: x.name }));
+      x.g = g;
+      ng.append(g);
+      const pick = () => focusStar(x);
+      g.addEventListener('pointerenter', pick);
+      g.addEventListener('click', pick);
+      g.addEventListener('focus', pick);
+    });
+    svg.addEventListener('pointerleave', () => focusStar(null));
+    host.append(svg);
+
+    function focusStar(x) {
+      svg.classList.toggle('focus', !!x);
+      if (!x) { readout.textContent = 'Toque numa estrela para ver a constelação dela.'; return; }
+      const mine = links.filter((l) => l.a === x || l.b === x);
+      const near = new Set([x, ...mine.map((l) => (l.a === x ? l.b : l.a))]);
+      stars.forEach((y) => y.g.classList.toggle('dim', !near.has(y)));
+      links.forEach((l) => l.el.classList.toggle('on', mine.includes(l)));
+      const other = (l) => (l.a === x ? l.b : l.a);
+      const list = (a) => (a.length > 1 ? `${a.slice(0, -1).join(', ')} e ${a[a.length - 1]}` : a[0]);
+      const heard = mine.filter((l) => l.how === 'during').sort((a, b) => b.minutes - a.minutes);
+      const weeks = mine.filter((l) => l.how === 'weeks');
+      let line;
+      if (x.kind === 'book') {
+        const parts = [];
+        if (heard.length) parts.push(`ouvi ${list(heard.map((l) => `${esc(other(l).name)} (${fmtMin(l.minutes)})`))}`);
+        if (weeks.length) parts.push(`nas mesmas semanas vi ${list(weeks.map((l) => `<em>${esc(other(l).name)}</em>`))}`);
+        line = `Enquanto lia <em>${esc(x.name)}</em>, ${parts.join('; ')}.`;
+      } else if (x.kind === 'artist') {
+        line = `${esc(x.name)} tocou enquanto eu lia ${list(heard.map((l) => `<em>${esc(other(l).name)}</em> (${fmtMin(l.minutes)})`))}.`;
+      } else {
+        line = `<em>${esc(x.name)}</em> dividiu as semanas com ${list(weeks.map((l) => `<em>${esc(other(l).name)}</em>`))}.`;
+      }
+      readout.innerHTML = `${line}<small>${num(x.hours, 1)} h no ano</small>`;
+    }
+    focusStar(null);
+    host._enter = () => {
+      if (REDUCED) return;
+      links.forEach((l, k) => {
+        const len = Math.hypot(l.b.x - l.a.x, l.b.y - l.a.y);
+        l.el.animate([{ strokeDasharray: `0 ${len}` }, { strokeDasharray: `${len} 0` }], { duration: 900, delay: 300 + k * 35, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' });
+      });
+      stars.forEach((x, k) => x.g.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600, delay: k * 22, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' }));
+    };
   }
 
   // ---------- Reading ----------
@@ -268,7 +469,7 @@
       const g = el('svg:g');
       g.append(el('svg:title', { text: `${b.title}, ${b.author}. ${b.pages} páginas${b.hours ? `, ${num(b.hours, 1)} h` : ''}${frac < 1 ? `, ${Math.round(frac * 100)}%` : ''}` }));
       if (frac < 1) g.append(el('svg:rect', { x, y: base - bh, width: bw, height: bh, rx: 2, fill: 'none', stroke: fill, 'stroke-opacity': 0.55 }));
-      g.append(el('svg:rect', { x, y: base - bh * frac, width: bw, height: bh * frac, rx: 2, fill }));
+      g.append(el('svg:rect', { class: 'spine', x, y: base - bh * frac, width: bw, height: bh * frac, rx: 2, fill }));
       const lines = labels.get(b);
       const ty = base - bh - 6;
       lines.forEach((line, i) => {
@@ -288,10 +489,30 @@
     host.append(svg);
   }
 
+  // Spines grow up from the shelf the first time it comes into view.
+  $('[data-shelf]')._enter = () => {
+    if (REDUCED) return;
+    $('[data-shelf]').querySelectorAll('.spine').forEach((r, k) => r.animate([{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)' }], { duration: 700, delay: k * 50, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' }));
+  };
+
+  // What played while she read a book, as a bar: one stretch per artist, the rest in silence.
+  function soundtrack(f) {
+    const st = D.connections?.soundtracks?.[f.title];
+    if (!st || st.covered < 10) return [el('span', { class: 'ost__note', text: 'trilha: sem histórico de música para este livro ainda' })];
+    const shades = [COLORS.music, mix(COLORS.music, COLORS.deep, 0.35), mix(COLORS.music, COLORS.deep, 0.6)];
+    const bar = el('span', { class: 'ost', 'aria-hidden': 'true' });
+    st.artists.forEach((a, k) => bar.append(el('i', { style: `width:${(a.minutes / st.covered) * 100}%;background:${shades[k]}` })));
+    const quiet = Math.max(0, Math.round((1 - st.music / st.covered) * 100));
+    const part = f.hours * 60 > st.covered * 1.1 ? ` (nas ${fmtMin(st.covered)} lidas desde que o histórico de música começou)` : '';
+    const who = st.artists.map((a) => `${a.name} ${fmtMin(a.minutes)}`).join(' · ');
+    return [bar, el('span', { class: 'ost__note', text: `trilha: ${who ? who + ' · ' : ''}${quiet}% em silêncio${part}` })];
+  }
+
+  const PRINTS_SHOWN = 3;
   function renderPrints() {
     const host = $('[data-prints]');
     if (!D.fingerprints.length) emptyNote(host, 'Nenhum livro aberto este ano ainda.');
-    D.fingerprints.forEach((f) => {
+    D.fingerprints.forEach((f, idx) => {
       const n = f.mins.length;
       const read = f.mins.filter((m) => m != null);
       if (!read.length) return;
@@ -307,13 +528,30 @@
       if (f.reread) svg.append(el('svg:rect', { x: f.reread[0], y: 18.5, width: f.reread[1] - f.reread[0] + 1, height: 3.5, fill: COLORS.pole }));
       const where = f.status === 'lido' ? '' : f.status === 'lendo' ? ` · lendo, p. ${Math.round(f.pages * f.progress)}` : ` · parei na p. ${Math.round(f.pages * f.progress)}`;
       const rr = f.reread ? ` · reli as p. ${f.reread[0] * 10 + 1}–${(f.reread[1] + 1) * 10}` : '';
-      host.append(el('li', {}, [
+      const li = el('li', {}, [
         cover(f),
         el('b', { text: f.title }),
         el('span', { class: 'meta', text: `${num(f.hours, 1)} h · ${f.pages} p.` }),
         svg,
         el('span', { class: 'note', text: `demorei nas p. ${hot * 10 + 1}–${hot * 10 + 10} (${peak} min)${where}${rr}` }),
-      ]));
+        ...soundtrack(f),
+      ]);
+      li.hidden = host.children.length >= PRINTS_SHOWN;
+      host.append(li);
+    });
+    // The rest wait behind a button, so the reading section stays short.
+    const more = $('[data-prints-more]');
+    const rest = [...host.children].filter((li) => li.hidden);
+    if (!rest.length) return;
+    const label = () => (more.getAttribute('aria-expanded') === 'true' ? 'Mostrar menos' : `Ver ${rest.length === 1 ? 'o outro livro' : `os outros ${rest.length} livros`}`);
+    more.hidden = false;
+    more.setAttribute('aria-expanded', 'false');
+    more.textContent = label();
+    more.addEventListener('click', () => {
+      const open = more.getAttribute('aria-expanded') !== 'true';
+      rest.forEach((li) => (li.hidden = !open));
+      more.setAttribute('aria-expanded', String(open));
+      more.textContent = label();
     });
   }
 
@@ -352,7 +590,6 @@
     const list = D.periods[period].artists.slice(0, 10);
     if (!list.length) return emptyNote(host, 'Nada tocado no período.');
     const max = list[0].hours || 1;
-    host.style.setProperty('--rows', Math.ceil(list.length / 2));
     list.forEach((a, i) => host.append(el('li', {
       html: `<span class="n">${i + 1}</span><span class="name">${esc(a.name)}</span><span class="bar" style="width:${(a.hours / max) * 100}%"></span><span class="v">${num(a.hours, a.hours < 10 ? 1 : 0)} h</span>`,
     })));
@@ -415,10 +652,7 @@
     period = p;
     buttons.forEach((b) => { b.setAttribute('aria-checked', String(b.dataset.period === p)); b.tabIndex = b.dataset.period === p ? 0 : -1; });
     renderOverview();
-    const P = D.periods[p];
-    renderClock('read', P.readingClock, '[data-read-peak]', 'leio');
-    renderClock('music', P.listeningClock, '[data-music-peak]', 'ouço');
-    renderClock('screen', P.watchingClock, '[data-screen-peak]', 'assisto');
+    renderDay();
     renderTracks();
     renderArtists();
     renderFeelings();
@@ -435,6 +669,7 @@
   });
 
   renderNow();
+  renderSky();
   renderShelf();
   // The shelf fills its figure, so draw it again when the figure changes width.
   if ('ResizeObserver' in window) {
@@ -450,5 +685,29 @@
   renderFilms();
   renderFoot();
   // Small screens open on the month: a whole year of days is too fine to read there.
+  picks.forEach((b) => { b.setAttribute('aria-checked', String(b.dataset.show === dayShow)); b.tabIndex = b.dataset.show === dayShow ? 0 : -1; });
   setPeriod(window.matchMedia('(max-width: 640px)').matches ? 'month' : 'year');
+
+  // ---------- Motion and wayfinding ----------
+  // Figures below the fold rise in as they reach the screen; the ones already in view stay put.
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => entries.forEach((e) => {
+      if (!e.isIntersecting) return;
+      io.unobserve(e.target);
+      e.target.classList.remove('pre');
+      e.target.querySelectorAll('[data-sky], [data-shelf]').forEach((n) => n._enter && n._enter());
+    }), { rootMargin: '0px 0px -10% 0px' });
+    document.querySelectorAll('.fig').forEach((fig) => {
+      if (!REDUCED && fig.getBoundingClientRect().top > window.innerHeight) fig.classList.add('pre');
+      io.observe(fig);
+    });
+
+    // The menu marks the section on screen.
+    const links = new Map([...document.querySelectorAll('.sections a')].map((a) => [a.hash.slice(1), a]));
+    const spy = new IntersectionObserver((entries) => entries.forEach((e) => {
+      if (!e.isIntersecting) return;
+      links.forEach((a, id) => (id === e.target.id ? a.setAttribute('aria-current', 'location') : a.removeAttribute('aria-current')));
+    }), { rootMargin: '-45% 0px -50% 0px' });
+    links.forEach((_, id) => document.getElementById(id) && spy.observe(document.getElementById(id)));
+  }
 })();

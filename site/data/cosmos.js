@@ -219,3 +219,43 @@
     },
   };
 })();
+
+// Fourth pass: connections, as the job computes them from overlapping timestamps.
+// Also synthetic.
+(function () {
+  const D = window.COSMOS_DATA;
+  const hours = (kind, name) => {
+    if (kind === 'book') return D.books.find((b) => b.title === name).hours;
+    if (kind === 'artist') return (D.artists.find((a) => a.name === name) || { hours: 5 }).hours;
+    return D.shows.find((s) => s.title === name).hours;
+  };
+  const during = [
+    ['Torto Arado', 'Milton Nascimento', 260], ['Torto Arado', 'Gal Costa', 120],
+    ['Tudo é Rio', 'Marisa Monte', 140], ['Tudo é Rio', 'Liniker', 90],
+    ['Duna', 'Björk', 360], ['Duna', 'Radiohead', 180], ['Duna', 'Lô Borges', 40],
+    ['O Avesso da Pele', 'Liniker', 110], ['O Avesso da Pele', 'Caetano Veloso', 80],
+    ['Projeto Hail Mary', 'Radiohead', 150], ['Projeto Hail Mary', 'Caetano Veloso', 60], ['Projeto Hail Mary', 'Jorge Ben Jor', 30],
+    ['A Hora da Estrela', 'Elis Regina', 70], ['A Hora da Estrela', 'Gal Costa', 40],
+    ['Os Despossuídos', 'Björk', 90], ['Os Despossuídos', 'Lô Borges', 60],
+  ];
+  const weeks = [
+    ['Torto Arado', 'film', 'Ainda Estou Aqui', 1], ['Duna', 'film', 'Duna: Parte Dois', 2], ['Duna', 'show', 'Arcane', 3],
+    ['Projeto Hail Mary', 'show', 'Ruptura', 2], ['A Hora da Estrela', 'film', 'Perfect Days', 1], ['A Hora da Estrela', 'show', 'The Bear', 2],
+    ['Os Despossuídos', 'show', 'Dark', 2],
+  ];
+  const stars = new Map();
+  const star = (kind, name) => {
+    const id = `${kind}:${name}`;
+    if (!stars.has(id)) stars.set(id, { id, kind, name, hours: hours(kind, name) });
+    return id;
+  };
+  const links = during.map(([b, a, minutes]) => ({ a: star('book', b), b: star('artist', a), minutes, how: 'during' }))
+    .concat(weeks.map(([b, kind, s, n]) => ({ a: star('book', b), b: star(kind, s), weeks: n, how: 'weeks' })));
+  const soundtracks = {};
+  D.books.forEach((b) => {
+    const mine = during.filter(([t]) => t === b.title).map(([, name, minutes]) => ({ name, minutes }));
+    const music = mine.reduce((a, x) => a + x.minutes, 0);
+    soundtracks[b.title] = { covered: Math.round(b.hours * 60), music, artists: mine };
+  });
+  D.connections = { stars: [...stars.values()], links, soundtracks };
+})();
