@@ -128,6 +128,7 @@ export function fingerprint(b) {
   }
   return {
     title: b.title,
+    author: b.author,
     pages: b.pages,
     hours: b.totalHours,
     status: b.status,
