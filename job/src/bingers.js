@@ -146,9 +146,11 @@ export async function fetchBingers(env, mirror) {
     .filter((t) => SHOW_STATUSES.includes(t.status) && lastByTitle.has(t.id))
     .sort((a, b) => lastByTitle.get(b.id).watchedAt - lastByTitle.get(a.id).watchedAt)
     .slice(0, 6);
+  const watchedIds = new Set(watched.map((e) => e.entityId));
   const seasons = {};
   for (const t of active) {
-    const eps = await episodes(env, t.id).catch(() => []);
+    // The episodes read carries no watched state; the entries feed does.
+    const eps = (await episodes(env, t.id).catch(() => [])).map((e) => ({ ...e, watched: e.watched || watchedIds.has(e.id) }));
     const last = lastByTitle.get(t.id);
     // The season of the last episode she watched; failing that, the latest season with a watched episode.
     const s = first(last.season, eps.find((e) => e.id === last.entityId)?.season, Math.max(...eps.filter((e) => e.watched).map((e) => e.season ?? -1)));
