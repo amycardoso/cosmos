@@ -14,6 +14,11 @@
     return n;
   };
 
+  // Titles and names come from outside (KOReader, Spotify, Bingers): escape before any innerHTML.
+  const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+  const emptyNote = (host, text) => host.append(el('p', { class: 'empty', text }));
+
   const COLORS = { read: '#F2A8C7', music: '#84CDEE', screen: '#B5A2EC', deep: '#111019', pole: '#A86A4E', spot: '#3948CF' };
   const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
   const mix = (a, b, t) => '#' + hex(a).map((v, i) => Math.round(v + (hex(b)[i] - v) * t).toString(16).padStart(2, '0')).join('');
@@ -143,25 +148,34 @@
 
   function renderNow() {
     const reading = D.books.find((b) => b.status === 'lendo');
-    const next = D.shows.find((x) => x.status === 'watch_next');
+    const next = D.shows.find((x) => x.status === 'watch_next' && x.next);
     const t = D.recentTrack;
-    const played = t.playedAt.slice(11, 16).replace(':', 'h');
     const li = (c, html) => el('li', { html: `<i class="sw" style="background:${c}" aria-hidden="true"></i>${html}` });
     const host = $('[data-now]');
-    host.append(
-      li(COLORS.read, `Lendo <em>${reading.title}</em><small>${reading.author} · ${Math.round(reading.progress * 100)}%</small><span class="meter" style="color:${COLORS.read}"><span style="width:${reading.progress * 100}%"></span></span>`),
-      li(COLORS.music, `Tocou às ${played}: <em>${t.title}</em><small>${t.artist}, ${t.album}</small>`),
-      li(COLORS.screen, `Próximo: ${next.next} de <em>${next.title}</em><small>${next.watched} de ${next.episodes} episódios da temporada</small><span class="meter" style="color:${COLORS.screen}"><span style="width:${(next.watched / next.episodes) * 100}%"></span></span>`)
-    );
+    if (reading) host.append(li(COLORS.read, `Lendo <em>${esc(reading.title)}</em><small>${esc(reading.author)} · ${Math.round(reading.progress * 100)}%</small><span class="meter" style="color:${COLORS.read}"><span style="width:${reading.progress * 100}%"></span></span>`));
+    if (t) {
+      const when = t.playing ? 'Tocando agora' : `Tocou às ${clockTime(t.playedAt)}`;
+      host.append(li(COLORS.music, `${when}: <em>${esc(t.title)}</em><small>${esc(t.artist)}${t.album ? ', ' + esc(t.album) : ''}</small>`));
+    }
+    if (next) host.append(li(COLORS.screen, `Próximo: ${esc(next.next)} de <em>${esc(next.title)}</em><small>${next.watched} de ${next.episodes} episódios da temporada</small><span class="meter" style="color:${COLORS.screen}"><span style="width:${(next.watched / Math.max(1, next.episodes)) * 100}%"></span></span>`));
+  }
+
+  // "22h01" from an ISO string or a timestamp, in the viewer's own clock.
+  function clockTime(v) {
+    const d = new Date(v);
+    return `${d.getHours()}h${String(d.getMinutes()).padStart(2, '0')}`;
   }
 
   function renderLines(r) {
     const label = period === 'year' ? 'em ' + D.year : period === 'month' ? 'nos últimos 30 dias' : 'nos últimos 7 dias';
     const done = D.books.filter((b) => b.status === 'lido').length;
     const films = D.shows.filter((x) => x.kind === 'filme').length;
-    $('[data-read-line]').textContent = `${fmtMin(sum(D.readingDays, r))} ${label}. ${done} livros terminados no ano.`;
-    $('[data-music-line]').textContent = `${fmtMin(sum(D.listeningDays, r))} ${label}. Quem mais tocou: ${D.periods[period].artists[0].name}.`;
-    $('[data-screen-line]').textContent = `${fmtMin(sum(D.watchingDays, r))} ${label}. ${films} filmes no ano.`;
+    $('[data-read-line]').textContent = `${fmtMin(sum(D.readingDays, r))} ${label}. ${plural(done, 'livro terminado', 'livros terminados')} no ano.`;
+    const topArtist = D.periods[period].artists[0];
+    const since = D.sources?.music?.since;
+    const counted = since > 0 && r[0] < since ? ` (contando desde ${fmtDay(since)})` : '';
+    $('[data-music-line]').textContent = `${fmtMin(sum(D.listeningDays, r))} ${label}${counted}.${topArtist ? ` Quem mais tocou: ${topArtist.name}.` : ''}`;
+    $('[data-screen-line]').textContent = `${fmtMin(sum(D.watchingDays, r))} ${label}. ${plural(films, 'filme', 'filmes')} no ano.`;
   }
 
   // ---------- Hour x weekday ----------
@@ -196,13 +210,15 @@
     const host = $('[data-shelf]');
     const done = D.books.filter((b) => b.status === 'lido').sort((a, b) => a.finished.localeCompare(b.finished));
     const open = D.books.filter((b) => b.status !== 'lido');
-    const maxP = Math.max(...D.books.map((b) => b.pages));
+    if (!D.books.length) return emptyNote(host, 'Nenhum livro aberto este ano ainda.');
+    const maxP = Math.max(1, ...D.books.map((b) => b.pages || 0));
     // Room above the spines for titles that do not fit inside them.
     // Every title stands above its spine, so the spine heights stay true to the pages.
     const H = 270, base = H, gapB = 4, apart = 40;
     const w = (b) => 20 + b.hours * 1.6;
     const h = (b) => 30 + (b.pages / maxP) * 110;
-    const width = done.reduce((a, b) => a + w(b) + gapB, 0) + apart + open.reduce((a, b) => a + w(b) + gapB, 0) - gapB;
+    // At least wide enough for the two captions under the shelf.
+    const width = Math.max(220, done.reduce((a, b) => a + w(b) + gapB, 0) + apart + open.reduce((a, b) => a + w(b) + gapB, 0) - gapB);
     const svg = el('svg:svg', { viewBox: `0 0 ${width} ${H + 26}`, width, role: 'img', 'aria-label': `${done.length} livros terminados e ${open.length} abertos.` });
     let x = 0;
     const spine = (b, fill, frac) => {
@@ -217,7 +233,8 @@
       x += bw + gapB;
     };
     done.forEach((b, i) => spine(b, mix(COLORS.read, '#ffffff', (i % 2) * 0.18), 1));
-    x += apart - gapB;
+    // Open books stand at the right end, under their caption.
+    x = width - open.reduce((acc, b) => acc + w(b) + gapB, 0) + gapB;
     open.forEach((b) => spine(b, b.status === 'pausado' ? COLORS.pole : COLORS.read, b.progress));
     svg.append(el('svg:line', { x1: 0, x2: width, y1: base + 1, y2: base + 1, stroke: 'rgba(237,241,250,.25)' }));
     svg.append(el('svg:text', { x: 0, y: H + 20, text: 'terminados' }));
@@ -227,11 +244,14 @@
 
   function renderPrints() {
     const host = $('[data-prints]');
+    if (!D.fingerprints.length) emptyNote(host, 'Nenhum livro aberto este ano ainda.');
     D.fingerprints.forEach((f) => {
       const n = f.mins.length;
       const read = f.mins.filter((m) => m != null);
-      const max = Math.max(...read);
-      const hot = f.mins.indexOf(max);
+      if (!read.length) return;
+      const peak = Math.max(...read);
+      const hot = f.mins.indexOf(peak);
+      const max = Math.max(1, peak); // only for the colour scale
       const svg = el('svg:svg', { viewBox: `0 0 ${n} 22`, preserveAspectRatio: 'none', 'aria-hidden': 'true' });
       svg.append(el('svg:rect', { x: 0, y: 7.5, width: n, height: 1, fill: 'rgba(237,241,250,.12)' }));
       f.mins.forEach((m, i) => {
@@ -245,19 +265,19 @@
         el('b', { text: f.title }),
         el('span', { class: 'meta', text: `${num(f.hours, 1)} h · ${f.pages} p.` }),
         svg,
-        el('span', { class: 'note', text: `demorei nas p. ${hot * 10 + 1}–${hot * 10 + 10} (${max} min)${where}${rr}` }),
+        el('span', { class: 'note', text: `demorei nas p. ${hot * 10 + 1}–${hot * 10 + 10} (${peak} min)${where}${rr}` }),
       ]));
     });
   }
 
   function renderMap() {
-    const names = { pt: 'Português', en: 'Inglês', es: 'Espanhol', fr: 'Francês' };
+    const names = { pt: 'Português', en: 'Inglês', es: 'Espanhol', fr: 'Francês', it: 'Italiano', de: 'Alemão', outro: 'Sem idioma' };
     const order = ['finished', 'reading', 'on_hold', 'unread'];
     const groups = {};
     D.library.forEach((b) => (groups[b.lang] = groups[b.lang] || []).push(b));
     // Groups too small to name fold into "Outros", as in Atlas map.
     const named = [], others = [];
-    Object.entries(groups).sort((a, b) => b[1].length - a[1].length).forEach(([k, v]) => (v.length >= 3 ? named.push([names[k] || k, v]) : others.push(...v)));
+    Object.entries(groups).sort((a, b) => b[1].length - a[1].length).forEach(([k, v]) => (v.length >= 3 || Object.keys(groups).length <= 3 ? named.push([names[k] || k, v]) : others.push(...v)));
     if (others.length) named.push(['Outros', others]);
     const host = $('[data-map]');
     named.forEach(([name, books]) => {
@@ -266,38 +286,42 @@
       host.append(el('div', { class: 'map__group' }, [el('h4', { text: `${name} · ${books.length}` }), cells]));
     });
     const fin = D.library.filter((b) => b.status === 'finished').length;
-    $('[data-map-line]').textContent = `${D.library.length} livros, ${fin} terminados, ${Object.keys(groups).length} idiomas.`;
+    $('[data-map-line]').textContent = `${plural(D.library.length, 'livro', 'livros')}, ${plural(fin, 'terminado', 'terminados')}, ${plural(Object.keys(groups).length, 'idioma', 'idiomas')}.`;
     const key = $('[data-map-key]');
-    [['finished', 'terminado'], ['reading', 'lendo'], ['on_hold', 'pausado'], ['unread', 'não lido']].forEach(([k, l]) => key.append(el('li', { html: `<i class="st-${k}"></i>${l}` })));
+    [['finished', 'terminado'], ['reading', 'lendo'], ['on_hold', 'pausado'], ['unread', 'não lido']].filter(([k]) => D.library.some((b) => b.status === k)).forEach(([k, l]) => key.append(el('li', { html: `<i class="st-${k}"></i>${l}` })));
   }
 
   // ---------- Music ----------
   function renderTracks() {
     const host = $('[data-tracks]');
     host.textContent = '';
-    D.periods[period].topTracks.forEach((t, i) => host.append(el('li', { html: `<span class="n">${i + 1}</span><span>${t.title}<small>${t.artist}</small></span><span class="plays">${t.plays}×</span>` })));
+    if (!D.periods[period].topTracks.length) emptyNote(host, 'Nada tocado no período.');
+    D.periods[period].topTracks.forEach((t, i) => host.append(el('li', { html: `<span class="n">${i + 1}</span><span>${esc(t.title)}<small>${esc(t.artist)}</small></span><span class="plays">${t.plays}×</span>` })));
   }
 
   function renderArtists() {
     const host = $('[data-artists]');
     host.textContent = '';
     const list = D.periods[period].artists.slice(0, 10);
-    const max = list[0].hours;
+    if (!list.length) return emptyNote(host, 'Nada tocado no período.');
+    const max = list[0].hours || 1;
     host.style.setProperty('--rows', Math.ceil(list.length / 2));
     list.forEach((a, i) => host.append(el('li', {
-      html: `<span class="n">${i + 1}</span><span class="name">${a.name}</span><span class="bar" style="width:${(a.hours / max) * 100}%"></span><span class="v">${num(a.hours, a.hours < 10 ? 1 : 0)} h</span>`,
+      html: `<span class="n">${i + 1}</span><span class="name">${esc(a.name)}</span><span class="bar" style="width:${(a.hours / max) * 100}%"></span><span class="v">${num(a.hours, a.hours < 10 ? 1 : 0)} h</span>`,
     })));
   }
 
   // ---------- Screens ----------
   function renderShows() {
     const host = $('[data-shows]');
-    const label = { watch_next: (s) => `próximo: ${s.next}`, collecting_dust: () => 'pegando poeira', caught_up: () => 'em dia', stopped: () => 'desisti' };
-    D.shows.filter((s) => label[s.status]).forEach((s) => {
+    const label = { watch_next: (s) => (s.next ? `próximo: ${s.next}` : 'temporada vista'), collecting_dust: () => 'pegando poeira', caught_up: () => 'em dia', stopped: () => 'desisti' };
+    const open = D.shows.filter((s) => label[s.status]);
+    if (!open.length) emptyNote(host, 'Nenhuma série em andamento.');
+    open.forEach((s) => {
       const eps = el('span', { class: 'eps', 'aria-hidden': 'true' });
       for (let i = 0; i < s.episodes; i++) eps.append(el('i', { class: i < s.watched ? 'on' : i === s.watched && s.status !== 'stopped' ? 'next' : '' }));
       host.append(el('li', { class: s.status === 'stopped' ? 'stopped' : '' }, [
-        el('span', { html: `<em>${s.title}</em>` }),
+        el('span', { html: `<em>${esc(s.title)}</em>` }),
         el('span', { class: 'meta', text: `T${s.season} · ${s.watched}/${s.episodes} · ${label[s.status](s)}` }),
         eps,
       ]));
@@ -309,6 +333,7 @@
     const host = $('[data-feelings]');
     host.textContent = '';
     const f = D.periods[period].feelings;
+    if (!Object.keys(f).length) return emptyNote(host, 'Nenhum sentimento marcado no período.');
     const max = Math.max(...Object.values(f));
     Object.entries(f).sort((a, b) => b[1] - a[1]).forEach(([k, v]) =>
       host.append(el('li', { html: `<span>${names[k]}</span><span class="bar" style="width:${(v / max) * 100}%"></span><span class="v">${v}</span>` })));
@@ -316,7 +341,8 @@
 
   function renderFilms() {
     const host = $('[data-films]');
-    D.shows.filter((s) => s.kind === 'filme').forEach((f) => host.append(el('li', { html: `<em>${f.title}</em><span>${fmtMin(Math.round(f.hours * 60))}</span>` })));
+    if (!D.shows.some((s) => s.kind === 'filme')) emptyNote(host, 'Nenhum filme este ano ainda.');
+    D.shows.filter((s) => s.kind === 'filme').forEach((f) => host.append(el('li', { html: `<em>${esc(f.title)}</em><span>${fmtMin(Math.round(f.hours * 60))}</span>` })));
     const q = $('[data-queue]');
     const names = { watch_next: 'para ver a seguir', collecting_dust: 'pegando poeira', caught_up: 'em dia', completed: 'terminadas', stopped: 'abandonadas' };
     Object.entries(D.watchlist).forEach(([k, v]) => q.append(el('li', { html: `<b>${v}</b>${names[k]}` })));
@@ -325,6 +351,11 @@
   function renderFoot() {
     const [d, t] = D.updatedAt.split('T');
     const [, m, day] = d.split('-').map(Number);
+    const src = D.sources;
+    const stale = src ? Object.entries({ reading: 'leitura', music: 'música', screens: 'séries e filmes' }).filter(([k]) => src[k] && src[k].status !== 'ok').map(([, v]) => v) : [];
+    $('[data-sources]').textContent = D.synthetic
+      ? 'Dados de exemplo, no formato que o job gera.'
+      : stale.length ? `Sem atualização desta vez: ${stale.join(', ')}. Mostrando a última leitura que deu certo.` : '';
     $('[data-updated]').textContent = `Atualizado em ${day} de ${MONTHS[m - 1]}, ${t.slice(0, 5).replace(':', 'h')}.`;
   }
 

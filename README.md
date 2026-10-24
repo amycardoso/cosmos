@@ -1,14 +1,54 @@
 # Cosmos
 
-Um site pessoal e privado com o meu ano em leitura, música e séries e filmes, nas cores do Júpiter em ultravioleta fotografado pelo Hubble.
+A private site with my year in reading, music, and series and films, in the colours of Hubble's ultraviolet Jupiter.
 
-- `site/`: o layout (HTML, CSS e JS sem framework). Abra `site/index.html` no navegador.
-- `site/data/sample.js`: dados de exemplo, no formato que o job vai gerar. Nada ali é real.
-- `DESIGN.md`: o sistema visual. `PRODUCT.md`: o que o site é e para quem.
-- `archive/webb/`: a primeira versão, com as nebulosas do Webb, guardada como referência (sem as imagens).
+![The site with sample data: three day-by-day belts for reading, music and screens, the period switch, and the reading, music and screens sections](docs/cosmos.gif)
 
-## Dados e privacidade
+<sub>Recorded with the sample data in `site/data/cosmos.js`.</sub>
 
-O repositório é público; os dados não. O job agendado (a fazer) lê as estatísticas do KOReader via WebDAV, o Spotify e o Bingers, gera os dados e publica direto no Cloudflare Pages, atrás do Cloudflare Access. Tokens ficam nos secrets do GitHub, e o job não commita, não imprime e não sobe artefatos com dados.
+- `site/`: the page itself (plain HTML, CSS and JS). Open `site/index.html` to see it with sample data.
+- `site/data/cosmos.js`: sample data in the exact shape the job produces. Nothing in it is real.
+- `job/`: the scheduled job that reads the real sources and builds the site.
+- `DESIGN.md`: the visual system. `PRODUCT.md`: what the site is and who it is for.
+- `archive/webb/`: the first version, built around James Webb nebulae, kept for reference (without its images).
 
-Imagem de Júpiter: NASA, ESA, Hubble.
+## How the data gets in
+
+Every three hours, `.github/workflows/deploy.yml` runs `npm run build`, which:
+
+1. downloads KOReader's `statistics.sqlite3` from WebDAV (KOReader's own statistics cloud sync puts it there) and turns it into the Reading Atlas views: time per day, the hours grid, the shelf, the library by language and each book's fingerprint;
+2. asks Spotify for the latest plays and adds them to a history the job keeps, because Spotify only remembers the last 50;
+3. mirrors the Bingers library through `/v1/entries` and its change cursor, plus the library and the season of each show in progress;
+4. writes `dist/` with the real data in `dist/data/cosmos.js`, and deploys it to Cloudflare Pages.
+
+If one source fails, the site keeps that source's last good read and says so in the footer.
+
+## Privacy
+
+The repository is public; the data is not.
+
+- Tokens live only in GitHub Actions secrets.
+- The data never touches the repository: the job deploys straight to Cloudflare, uploads no artifacts and prints nothing but which sources worked.
+- What has to survive between runs (the Spotify history, the Bingers mirror, each source's last good read) lives in a Cloudflare KV namespace.
+- The site sits behind Cloudflare Access, so only the people I allow can open it.
+
+## Setup
+
+1. **Cloudflare.** Create a Pages project named `cosmos` (Direct Upload), a KV namespace, and an API token with *Cloudflare Pages: Edit* and *Workers KV Storage: Edit*. In Zero Trust, add an Access application for the Pages domain that allows only my email.
+2. **Spotify.** Create an app at developer.spotify.com with the redirect URI `http://127.0.0.1:8888/callback`, then run `SPOTIFY_CLIENT_ID=… SPOTIFY_CLIENT_SECRET=… npm run spotify-auth` on my own computer to get the refresh token.
+3. **Bingers.** Create a read-only personal token at bingers.app/integrations (Legend plan).
+4. **KOReader.** Turn on cloud sync in the statistics plugin, pointing to a WebDAV folder. The URL secret is the full path of `statistics.sqlite3` in that folder.
+5. **GitHub secrets.** `WEBDAV_URL`, `WEBDAV_USER`, `WEBDAV_PASSWORD`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_REFRESH_TOKEN`, `BINGERS_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `COSMOS_KV_NAMESPACE`. If the Pages project has another name, set the repository variable `COSMOS_PAGES_PROJECT`.
+6. Run **Probe sources** once from the Actions tab. It prints only the shape of each API response, never values, so the readers can be checked against the real APIs. Then run **Build and deploy**.
+
+## Develop
+
+```sh
+npm install
+npm test             # job tests, with synthetic fixtures
+npm run build        # builds dist/ with whatever credentials are in the environment
+```
+
+Without Cloudflare variables, the job keeps its state in `.state/` (ignored by git).
+
+Jupiter image: NASA, ESA, Hubble.

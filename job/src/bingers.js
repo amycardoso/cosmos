@@ -1,0 +1,195 @@
+// Series and films, from the Bingers REST API (https://api.bingers.app/v1).
+// The job mirrors /v1/entries with its change cursor, so after the first full read
+// each run only asks for what changed.
+//
+// Field names follow the developer guide; where the guide does not spell a field out,
+// the readers below accept the likely spellings. `npm run probe` prints the real keys.
+import { minutesPerDay, clocks, inPeriod, PERIOD_DAYS, round1 } from './aggregate.js';
+
+const API = 'https://api.bingers.app/v1';
+const EPISODE_MINUTES = 45; // used only when Bingers sends no runtime
+const MOVIE_MINUTES = 110;
+
+// Retry-After is either seconds or an HTTP date; wait 5 s when it is missing, never over a minute.
+function retryAfter(value) {
+  const secs = Number(value);
+  const ms = value && Number.isFinite(secs) ? secs * 1000 : value ? Date.parse(value) - Date.now() : NaN;
+  return Math.min(60000, Math.max(0, Number.isFinite(ms) ? ms : 5000));
+}
+
+export async function get(path, env) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const res = await fetch(API + path, { headers: { Authorization: `Bearer ${env.BINGERS_TOKEN}`, Accept: 'application/json' } });
+    if (res.status === 429) {
+      await new Promise((r) => setTimeout(r, retryAfter(res.headers.get('retry-after'))));
+      continue;
+    }
+    if (!res.ok) throw new Error(`Bingers ${path.split('?')[0]} answered ${res.status}`);
+    return res.json();
+  }
+  throw new Error(`Bingers ${path.split('?')[0]} kept answering 429`);
+}
+
+const first = (...v) => v.find((x) => x !== undefined && x !== null);
+const listIn = (page) => first(page.data, page.items, page.entries, page.results, Array.isArray(page) ? page : null) || [];
+
+export function normEntry(e) {
+  const titleId = first(e.title_id, e.title?.id, typeof e.title === 'string' ? e.title : undefined, e.show_id, e.movie_id);
+  const episode = first(e.episode, e.episode_number, e.number);
+  return {
+    id: String(first(e.id, `${titleId}:${e.season}:${episode}`)),
+    titleId: titleId == null ? null : String(titleId),
+    kind: first(e.kind, e.type, episode != null ? 'episode' : 'movie'),
+    season: first(e.season, e.season_number, null),
+    episode: episode ?? null,
+    watchedAt: Date.parse(first(e.last_watched_at, e.watched_at, e.first_watched_at, '')) || null,
+    plays: first(e.plays, e.watched ? 1 : 0),
+    watched: first(e.watched, (e.plays || 0) > 0),
+    rating: first(e.rating, e.my_rating, null),
+    feelings: first(e.feelings, e.my_feelings, []),
+    minutes: first(e.runtime_minutes, e.runtime, null),
+    deleted: Boolean(first(e.deleted, e.tombstone, e.deleted_at, false)),
+  };
+}
+
+export function normTitle(id, t) {
+  return {
+    id: String(first(t.id, id)),
+    name: first(t.name, t.title, 'Sem título'),
+    kind: first(t.kind, t.type, null),
+    year: first(t.year, null),
+    minutes: first(t.runtime_minutes, t.runtime, null),
+  };
+}
+
+// Pulls every change since the stored cursor into the mirror { cursor, entries, titles }.
+export async function syncEntries(env, mirror) {
+  const m = { cursor: mirror?.cursor || null, entries: { ...(mirror?.entries || {}) }, titles: { ...(mirror?.titles || {}) } };
+  for (let guard = 0; guard < 200; guard++) {
+    const q = new URLSearchParams({ include: 'titles' });
+    if (m.cursor) q.set('cursor', m.cursor);
+    const page = await get(`/entries?${q}`, env);
+    for (const raw of listIn(page)) {
+      const e = normEntry(raw);
+      if (e.deleted) delete m.entries[e.id];
+      else m.entries[e.id] = e;
+    }
+    for (const [id, t] of Object.entries(page.titles || {})) m.titles[id] = normTitle(id, t);
+    const next = page.next_cursor;
+    const more = first(page.has_more, listIn(page).length > 0);
+    if (!next || next === m.cursor) break;
+    m.cursor = next;
+    if (!more) break;
+  }
+  return m;
+}
+
+// Every followed title with her status on it, paged.
+export async function library(env) {
+  const out = [];
+  let cursor = null;
+  for (let guard = 0; guard < 50; guard++) {
+    const q = new URLSearchParams({ filter: 'all', limit: '200' });
+    if (cursor) q.set('cursor', cursor);
+    const page = await get(`/library?${q}`, env);
+    out.push(...listIn(page));
+    cursor = page.next_cursor;
+    if (!cursor) break;
+  }
+  return out.map((t) => ({
+    id: String(first(t.id, t.title_id)),
+    name: first(t.name, t.title, 'Sem título'),
+    kind: first(t.kind, t.type, null),
+    status: first(t.status, t.my_status, null),
+    minutes: first(t.runtime_minutes, t.runtime, null),
+    genres: t.genres || [],
+  }));
+}
+
+// The episodes of one season, for the progress strip and per-episode feelings.
+export async function season(env, titleId, n) {
+  const page = await get(`/titles/${encodeURIComponent(titleId)}/episodes?season=${n}`, env);
+  return listIn(page).map((e) => ({
+    episode: first(e.episode, e.number, e.episode_number),
+    watched: Boolean(first(e.watched, e.my_watched, (e.plays || 0) > 0, false)),
+    feelings: first(e.feelings, e.my_feelings, []),
+  }));
+}
+
+const SHOW_STATUSES = ['watch_next', 'collecting_dust', 'caught_up', 'stopped'];
+const QUEUE = ['watch_next', 'collecting_dust', 'caught_up', 'completed', 'stopped'];
+
+export async function fetchBingers(env, mirror) {
+  const synced = await syncEntries(env, mirror);
+  const lib = await library(env);
+  const watched = Object.values(synced.entries).filter((e) => e.watched && e.watchedAt);
+  // Shows in progress, most recently watched first, with the season she is in.
+  const lastByTitle = new Map();
+  for (const e of watched) {
+    if (e.kind !== 'episode') continue;
+    const cur = lastByTitle.get(e.titleId);
+    if (!cur || e.watchedAt > cur.watchedAt) lastByTitle.set(e.titleId, e);
+  }
+  const active = lib
+    .filter((t) => SHOW_STATUSES.includes(t.status) && lastByTitle.has(t.id))
+    .sort((a, b) => lastByTitle.get(b.id).watchedAt - lastByTitle.get(a.id).watchedAt)
+    .slice(0, 6);
+  const seasons = {};
+  for (const t of active) {
+    const s = lastByTitle.get(t.id).season;
+    if (s == null) continue;
+    seasons[t.id] = { season: s, episodes: await season(env, t.id, s).catch(() => []) };
+  }
+  return { mirror: synced, library: lib, seasons };
+}
+
+export function screens({ mirror, library: lib, seasons }, span) {
+  const titles = mirror.titles;
+  const byId = new Map(lib.map((t) => [t.id, t]));
+  const minutesOf = (e) => first(e.minutes, byId.get(e.titleId)?.minutes, titles[e.titleId]?.minutes, e.kind === 'movie' ? MOVIE_MINUTES : EPISODE_MINUTES);
+  const nameOf = (id) => first(byId.get(id)?.name, titles[id]?.name, 'Sem título');
+  const watched = Object.values(mirror.entries).filter((e) => e.watched && e.watchedAt);
+  const sessions = watched.map((e) => ({ start: e.watchedAt, minutes: minutesOf(e), entry: e }));
+
+  const feelings = (n) => {
+    const out = {};
+    for (const s of sessions) if (inPeriod(s.start, span, n)) for (const f of s.entry.feelings || []) out[f] = (out[f] || 0) + 1;
+    return out;
+  };
+  // Episode feelings that only the per-season read carries.
+  for (const [id, s] of Object.entries(seasons)) {
+    for (const ep of s.episodes) {
+      const e = watched.find((x) => x.titleId === id && x.season === s.season && x.episode === ep.episode);
+      if (e && !(e.feelings || []).length && ep.feelings?.length) e.feelings = ep.feelings;
+    }
+  }
+
+  const yearSessions = sessions.filter((s) => inPeriod(s.start, span, null));
+  const hoursByTitle = new Map();
+  for (const s of yearSessions) hoursByTitle.set(s.entry.titleId, (hoursByTitle.get(s.entry.titleId) || 0) + s.minutes / 60);
+
+  const shows = Object.entries(seasons).map(([id, s]) => {
+    const t = byId.get(id);
+    const eps = s.episodes.filter((e) => e.episode > 0).sort((a, b) => a.episode - b.episode);
+    const done = eps.filter((e) => e.watched).length;
+    const next = eps.find((e) => !e.watched);
+    return {
+      title: nameOf(id), kind: 'série', status: t?.status, hours: round1(hoursByTitle.get(id) || 0),
+      season: s.season, watched: done, episodes: eps.length, next: next ? `T${s.season} E${next.episode}` : null,
+    };
+  });
+  const films = yearSessions
+    .filter((s) => s.entry.kind === 'movie')
+    .sort((a, b) => b.start - a.start)
+    .map((s) => ({ title: nameOf(s.entry.titleId), kind: 'filme', hours: round1(s.minutes / 60), status: 'watched', rating: s.entry.rating }));
+
+  const watchlist = Object.fromEntries(QUEUE.map((k) => [k, lib.filter((t) => t.status === k).length]));
+
+  return {
+    watchingDays: minutesPerDay(sessions, span),
+    watchingClocks: clocks(sessions, span),
+    shows: shows.concat(films),
+    watchlist,
+    periods: { year: { feelings: feelings(null) }, month: { feelings: feelings(PERIOD_DAYS.month) }, week: { feelings: feelings(PERIOD_DAYS.week) } },
+  };
+}

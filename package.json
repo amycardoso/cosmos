@@ -1,0 +1,20 @@
+{
+  "name": "cosmos",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node job/src/build.js",
+    "probe": "node job/src/probe.js",
+    "test": "node --test job/test/*.test.js",
+    "spotify-auth": "node job/src/spotify-auth.js"
+  },
+  "dependencies": {
+    "sql.js": "1.14.2"
+  },
+  "devDependencies": {
+    "wrangler": "4.147.0"
+  }
+}

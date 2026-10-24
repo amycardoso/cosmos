@@ -1,0 +1,9 @@
+# Impeccable runtime state (holds seed keys)
+.impeccable/questions/
+.impeccable/review/
+# Real data, build output and secrets never live in this repo
+.env
+.state/
+dist/
+node_modules/
+.DS_Store
