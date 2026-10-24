@@ -60,8 +60,11 @@ await tryRun('bingers', async () => {
     }
   }
   console.log(`bingers entries keys (${items.length} items): ${Object.entries(seen).map(([k, s]) => `${k} ${s.n} ${[...s.types].join('|')}`).join(', ')}`);
-  const show1 = (await get('/library?filter=all&limit=20', env)).items?.find((t) => t.kind !== 'movie');
-  if (show1) show('bingers episodes', await get(`/titles/${encodeURIComponent(show1.id)}/episodes?season=1`, env));
+  // Enum values only (like "episode" or "show"), never titles or ids.
+  const lib = await get('/library?filter=all&limit=200', env);
+  console.log(`bingers kinds: entries ${[...new Set(items.map((i) => i.entity_kind))].join('|')}, library ${[...new Set((lib.items || []).map((t) => t.kind))].join('|')}`);
+  const showId = items.find((i) => /episode/i.test(i.entity_kind))?.title_id;
+  if (showId) show('bingers episodes', await get(`/titles/${encodeURIComponent(showId)}/episodes`, env));
   show('bingers library', await get('/library?filter=all&limit=1', env));
   show('bingers watchlist', await get('/watchlist', env));
 });

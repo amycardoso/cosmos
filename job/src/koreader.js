@@ -31,7 +31,10 @@ function rows(db, sql) {
 }
 
 // Normalised language code: "pt-BR" -> "pt".
-const lang = (l) => (l || '').toLowerCase().split(/[-_]/)[0] || 'outro';
+const lang = (l) => {
+  const code = (l || '').toLowerCase().split(/[-_]/)[0];
+  return !code || code === 'n/a' || code === 'und' ? 'outro' : code;
+};
 
 export function reading(db, span, nowMs) {
   const books = new Map(rows(db, 'SELECT id, title, authors, pages, language, highlights FROM book').map((b) => [b.id, { ...b, stats: [] }]));
@@ -44,9 +47,22 @@ export function reading(db, span, nowMs) {
     b.stats.push({ page, start: r.start_time * 1000, seconds: r.duration });
   }
 
+  // Two files of the same book (another edition or a re-download) count as one book.
+  const merged = new Map();
+  for (const b of books.values()) {
+    const key = `${(b.title || '').trim().toLowerCase()}|${(b.authors || '').split('\n')[0].trim().toLowerCase()}`;
+    const into = merged.get(key);
+    if (!into) { merged.set(key, b); continue; }
+    const pages = Math.max(into.pages || 0, b.pages || 0);
+    const scale = (book) => book.stats.map((st) => (book.pages && pages ? { ...st, page: Math.max(1, Math.round((st.page * pages) / book.pages)) } : st));
+    into.stats = scale(into).concat(scale(b)).sort((x, y) => x.start - y.start);
+    into.pages = pages || into.pages;
+    into.highlights = (into.highlights || 0) + (b.highlights || 0);
+  }
+
   const sessions = [];
   const list = [];
-  for (const b of books.values()) {
+  for (const b of merged.values()) {
     if (!b.stats.length) continue;
     for (const s of b.stats) sessions.push({ start: s.start, minutes: s.seconds / 60, book: b.id });
     const maxPage = Math.max(...b.stats.map((s) => s.page));
