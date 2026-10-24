@@ -7,7 +7,7 @@ import { sameBook as simple } from './koreader.js';
 
 export function normSkoob(items) {
   return items
-    .filter((b) => b.title && b.finished_at)
+    .filter((b) => b.title && Number.isFinite(Date.parse(b.finished_at)))
     .map((b) => ({ title: b.title, author: b.author || '', pages: Number(b.pages) || 0, finished: local(Date.parse(b.finished_at)).date }));
 }
 
@@ -16,7 +16,8 @@ export function withSkoob(read, skoob, span) {
   if (!read || !Array.isArray(skoob) || !skoob.length) return read;
   const known = new Set(read.books.map((b) => simple(b.title)));
   const extra = skoob
-    .filter((b) => b.finished.startsWith(`${span.year}-`) && !known.has(simple(b.title)))
+    // Adding each title as it is taken also drops repeats from overlapping shelf pages.
+    .filter((b) => b.finished.startsWith(`${span.year}-`) && !known.has(simple(b.title)) && known.add(simple(b.title)))
     .map((b) => ({ title: b.title, author: b.author, pages: b.pages, lang: 'outro', highlights: 0, hours: 0, status: 'lido', progress: 1, finished: b.finished, source: 'skoob' }));
   return { ...read, books: read.books.concat(extra) };
 }

@@ -51,11 +51,14 @@ export function reading(db, span, nowMs) {
   }
 
   // Two files of the same book (another edition or a re-download) count as one book.
+  // Same main title, and the authors share a name (or one file has none), so two books that only share a title stay apart.
+  const names = (a) => new Set(sameBook((a || '').split('\n')[0]).split(' ').filter((w) => w.length > 2));
+  const sameAuthor = (x, y) => { const a = names(x.authors); const b = names(y.authors); return !a.size || !b.size || [...a].some((w) => b.has(w)); };
   const merged = new Map();
   for (const b of books.values()) {
     const key = sameBook(b.title);
-    const into = merged.get(key);
-    if (!into) { merged.set(key, b); continue; }
+    const into = (merged.get(key) || []).find((x) => sameAuthor(x, b));
+    if (!into) { merged.set(key, [...(merged.get(key) || []), b]); continue; }
     const pages = Math.max(into.pages || 0, b.pages || 0);
     const scale = (book) => book.stats.map((st) => (book.pages && pages ? { ...st, page: Math.max(1, Math.round((st.page * pages) / book.pages)) } : st));
     into.stats = scale(into).concat(scale(b)).sort((x, y) => x.start - y.start);
@@ -65,7 +68,7 @@ export function reading(db, span, nowMs) {
 
   const sessions = [];
   const list = [];
-  for (const b of merged.values()) {
+  for (const b of [...merged.values()].flat()) {
     if (!b.stats.length) continue;
     for (const s of b.stats) sessions.push({ start: s.start, minutes: s.seconds / 60, book: b.id });
     const maxPage = Math.max(...b.stats.map((s) => s.page));

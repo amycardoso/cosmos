@@ -82,8 +82,8 @@ export function normTitle(id, t) {
 }
 
 // Pulls every change since the stored cursor into the mirror { cursor, entries, titles }.
-// Bump when normEntry changes how entries are keyed, so the mirror is read again from the start.
-const MIRROR_VERSION = 2;
+// Bump when normEntry changes how entries are keyed or normalised, so the mirror is read again from the start.
+const MIRROR_VERSION = 3;
 
 export async function syncEntries(env, mirror) {
   if (mirror?.version !== MIRROR_VERSION) mirror = null;
