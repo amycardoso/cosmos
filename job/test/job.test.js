@@ -132,3 +132,28 @@ test('covers: one lookup per book, cached misses wait before trying again', asyn
   assert.equal(asked.length, 4);
   assert.equal(coverKey(books[0]), 'piranesi|susanna clarke');
 });
+
+test('skoob: adds this year\'s finished books KOReader does not know', async () => {
+  const { normSkoob, withSkoob } = await import('../src/skoob.js');
+  const skoob = normSkoob([
+    { title: 'Piranesi', author: 'Susanna Clarke', pages: 272, finished_at: '2026-03-12T03:00:00Z' },
+    { title: 'Torto Arado', author: 'Itamar Vieira Junior', pages: 264, finished_at: '2026-01-20T02:00:00Z' },
+    { title: 'Velho', author: 'X', pages: 100, finished_at: '2025-12-01T12:00:00Z' },
+    { title: 'Sem data', author: 'Y', pages: 50, finished_at: null },
+    { title: 'Data ruim', author: 'Z', pages: 50, finished_at: 'ontem' },
+    { title: 'Torto arado', author: 'Itamar Vieira Junior', pages: 264, finished_at: '2026-01-20T02:00:00Z' },
+  ]);
+  assert.equal(skoob.length, 4);
+  const read = { books: [{ title: 'Piranesi: edição especial', status: 'lido' }], library: [], fingerprints: [] };
+  const out = withSkoob(read, skoob, span);
+  assert.deepEqual(out.books.map((b) => b.title), ['Piranesi: edição especial', 'Torto Arado']);
+  assert.equal(out.books[1].finished, '2026-01-19'); // finished_at is UTC; the day is hers
+});
+
+test('bingers feelings: lists, single words and JSON strings', async () => {
+  const { feelingList } = await import('../src/bingers.js');
+  assert.deepEqual(feelingList('["touched","thrilled"]'), ['touched', 'thrilled']);
+  assert.deepEqual(feelingList('shocked'), ['shocked']);
+  assert.deepEqual(feelingList(['amused', '["scared"]']), ['amused', 'scared']);
+  assert.deepEqual(feelingList(null), []);
+});

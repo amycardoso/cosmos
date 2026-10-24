@@ -64,7 +64,21 @@ await tryRun('bingers', async () => {
   const lib = await get('/library?filter=all&limit=200', env);
   console.log(`bingers kinds: entries ${[...new Set(items.map((i) => i.entity_kind))].join('|')}, library ${[...new Set((lib.items || []).map((t) => t.kind))].join('|')}`);
   const showId = items.find((i) => /episode/i.test(i.entity_kind))?.title_id;
-  if (showId) show('bingers episodes', await get(`/titles/${encodeURIComponent(showId)}/episodes`, env));
+  if (showId) {
+    const eps = await get(`/titles/${encodeURIComponent(showId)}/episodes`, env);
+    show('bingers episodes', eps);
+    // Do entry ids and episode ids name the same thing? Shapes and match counts only, never the ids.
+    const shape = (v) => {
+      const x = String(v ?? '');
+      const cls = /^\d+$/.test(x) ? 'digits' : /^[0-9a-f-]{36}$/i.test(x) ? 'uuid' : /^[0-9a-f]+$/i.test(x) ? 'hex' : 'mixed';
+      return `${typeof v} len ${x.length} ${cls} prefix ${x.match(/^[a-z]+[_:-]/i)?.[0] || '-'}`;
+    };
+    const mine = items.filter((i) => i.title_id === showId).map((i) => String(i.entity_id));
+    const epIds = (eps.items || []).map((e) => String(e.id));
+    const exact = mine.filter((id) => epIds.includes(id)).length;
+    const contains = mine.filter((id) => epIds.some((e) => e.includes(id) || id.includes(e))).length;
+    console.log(`bingers ids: entry ${shape(items.find((i) => i.title_id === showId)?.entity_id)}; episode ${shape(eps.items?.[0]?.id)}; entries ${mine.length}, exact ${exact}, contains ${contains}; seasons ${[...new Set((eps.items || []).map((e) => typeof e.season))].join('|')}`);
+  }
   show('bingers library', await get('/library?filter=all&limit=1', env));
   show('bingers watchlist', await get('/watchlist', env));
 });
