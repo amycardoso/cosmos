@@ -73,6 +73,10 @@ i.sw{display:inline-block;width:14px;height:6px;border-radius:3px;margin-right:8
 .now__list li{font-size:15px;line-height:1.35}
 .now__list small{display:block;color:var(--haze);font-size:13px;margin-top:2px}
 .now__list em{font-style:italic}
+.now__list li.with-cover{display:grid;grid-template-columns:44px minmax(0,1fr);column-gap:14px;align-items:start}
+/* Covers: the real image, small, with the cell's soft corner; a deep tile with a belt edge when none was found. */
+.cover{display:block;width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:3px;background:var(--deep)}
+.cover--none{box-shadow:inset 0 0 0 1px rgba(242,168,199,.35)}
 .meter{display:block;height:3px;margin-top:8px;border-radius:2px;background:var(--deep);overflow:hidden}
 .meter span{display:block;height:100%;background:currentColor}
 
@@ -99,11 +103,12 @@ i.sw{display:inline-block;width:14px;height:6px;border-radius:3px;margin-right:8
 
 /* Fingerprints */
 .prints{display:flex;flex-direction:column;gap:16px}
-.prints li{display:grid;grid-template-columns:minmax(0,1fr) auto;row-gap:6px;column-gap:16px;font-size:14px}
+.prints li{display:grid;grid-template-columns:36px minmax(0,1fr) auto;row-gap:6px;column-gap:16px;font-size:14px}
+.prints .cover{grid-row:1/span 3;align-self:start}
 .prints b{font-weight:600}
 .prints .meta{color:var(--haze);text-align:right}
-.prints svg{grid-column:1/-1;display:block;width:100%;height:22px}
-.prints .note{grid-column:1/-1;color:var(--haze);font-size:13px}
+.prints svg{grid-column:2/-1;display:block;width:100%;height:22px}
+.prints .note{grid-column:2/-1;color:var(--haze);font-size:13px}
 
 /* Library map */
 .map{display:flex;flex-wrap:wrap;gap:20px 28px}

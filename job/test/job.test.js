@@ -117,3 +117,18 @@ test('bingers entries as the API sends them: one per episode, kind from entity_k
   assert.equal(s.shows[0].next, 'T3 E8');
   assert.deepEqual(s.periods.year.feelings, { tense: 1, amused: 1 });
 });
+
+test('covers: one lookup per book, cached misses wait before trying again', async () => {
+  const { covers, coverKey } = await import('../src/covers.js');
+  const books = [{ title: 'Piranesi', author: 'Susanna Clarke' }, { title: 'Piranesi', author: 'Susanna Clarke' }, { title: 'Sem capa', author: '' }];
+  const asked = [];
+  const find = async (b) => (asked.push(b.title), null);
+  const first = await covers(books, {}, NOW, find);
+  assert.deepEqual(asked, ['Piranesi', 'Sem capa']);
+  assert.deepEqual(Object.keys(first.images), []);
+  await covers(books, first.cache, NOW + 86400000, find);
+  assert.equal(asked.length, 2); // still inside the retry window
+  await covers(books, first.cache, NOW + 15 * 86400000, find);
+  assert.equal(asked.length, 4);
+  assert.equal(coverKey(books[0]), 'piranesi|susanna clarke');
+});

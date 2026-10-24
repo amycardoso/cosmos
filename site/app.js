@@ -146,13 +146,28 @@
     host.append(svg);
   }
 
+  // A book cover served from the site itself, or a plain spine-coloured tile when none was found.
+  const cover = (b) => (b.cover
+    ? el('img', { class: 'cover', src: b.cover, alt: '', loading: 'lazy', decoding: 'async' })
+    : el('span', { class: 'cover cover--none', 'aria-hidden': 'true' }));
+
   function renderNow() {
     const reading = D.books.find((b) => b.status === 'lendo');
     const next = D.shows.find((x) => x.status === 'watch_next' && x.next);
     const t = D.recentTrack;
     const li = (c, html) => el('li', { html: `<i class="sw" style="background:${c}" aria-hidden="true"></i>${html}` });
     const host = $('[data-now]');
-    if (reading) host.append(li(COLORS.read, `Lendo <em>${esc(reading.title)}</em><small>${esc(reading.author)} · ${Math.round(reading.progress * 100)}%</small><span class="meter" style="color:${COLORS.read}"><span style="width:${reading.progress * 100}%"></span></span>`));
+    if (reading) {
+      const row = li(COLORS.read, `Lendo <em>${esc(reading.title)}</em><small>${esc(reading.author)} · ${Math.round(reading.progress * 100)}%</small><span class="meter" style="color:${COLORS.read}"><span style="width:${reading.progress * 100}%"></span></span>`);
+      // With a cover, the line sits beside it.
+      if (reading.cover) {
+        const text = el('div');
+        text.append(...row.childNodes);
+        row.classList.add('with-cover');
+        row.append(cover(reading), text);
+      }
+      host.append(row);
+    }
     if (t) {
       const when = t.playing ? 'Tocando agora' : `Tocou às ${clockTime(t.playedAt)}`;
       host.append(li(COLORS.music, `${when}: <em>${esc(t.title)}</em><small>${esc(t.artist)}${t.album ? ', ' + esc(t.album) : ''}</small>`));
@@ -293,6 +308,7 @@
       const where = f.status === 'lido' ? '' : f.status === 'lendo' ? ` · lendo, p. ${Math.round(f.pages * f.progress)}` : ` · parei na p. ${Math.round(f.pages * f.progress)}`;
       const rr = f.reread ? ` · reli as p. ${f.reread[0] * 10 + 1}–${(f.reread[1] + 1) * 10}` : '';
       host.append(el('li', {}, [
+        cover(f),
         el('b', { text: f.title }),
         el('span', { class: 'meta', text: `${num(f.hours, 1)} h · ${f.pages} p.` }),
         svg,

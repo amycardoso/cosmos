@@ -10,6 +10,7 @@ import { store } from './state.js';
 import { fetchStatistics, openStatistics, reading } from './koreader.js';
 import { fetchSpotify, music } from './spotify.js';
 import { fetchBingers, screens } from './bingers.js';
+import { covers, coverKey } from './covers.js';
 
 const env = process.env;
 const has = (...keys) => keys.every((k) => env[k]);
@@ -107,6 +108,20 @@ export async function main() {
   await rm('dist', { recursive: true, force: true });
   await cp('site', 'dist', { recursive: true });
   await mkdir('dist/data', { recursive: true });
+
+  // Covers are a nicety: when the lookup fails the books keep their plain spines.
+  if (data.books.length) {
+    try {
+      const found = await covers(data.books, (await state.get('covers')) || {}, now);
+      await state.put('covers', found.cache);
+      await mkdir('dist/covers', { recursive: true });
+      for (const { file, bytes } of Object.values(found.images)) await writeFile(`dist/${file}`, bytes);
+      for (const b of [...data.books, ...data.fingerprints]) b.cover = found.images[coverKey(b)]?.file || null;
+      console.log(`covers: ${Object.keys(found.images).length} of ${data.books.length}`);
+    } catch (err) {
+      console.log(`covers: failed (${err.message})`);
+    }
+  }
   await writeFile('dist/data/cosmos.js', `window.COSMOS_DATA = ${JSON.stringify(data)};\n`);
   console.log('dist/ ready');
 }
