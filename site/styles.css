@@ -134,9 +134,17 @@ i.sw{display:inline-block;width:14px;height:6px;border-radius:3px;margin-right:8
 .clock svg{display:block;width:100%;max-width:620px;height:auto}
 .clock text{font:12px var(--text);fill:var(--dim)}
 
-/* Shelf */
-.shelf svg{display:block;max-width:100%;height:auto;overflow:visible}
-.shelf text{font:12px var(--text);fill:var(--haze)}
+/* Shelf: covers face out, one shelf per row */
+.shelf__case{display:flex;flex-direction:column;gap:22px}
+.shelf__row{display:flex;align-items:flex-end;gap:10px;margin:0;padding:0;border-bottom:2px solid rgba(237,241,250,.22)}
+.book{position:relative;flex:none;height:var(--h);aspect-ratio:2/3;list-style:none}
+.book img{display:block;width:100%;height:100%;object-fit:cover;border-radius:2px 3px 3px 2px;background:var(--deep)}
+.book__none{display:flex;align-items:flex-end;height:100%;padding:7px;border-radius:2px 3px 3px 2px;background:color-mix(in oklab,var(--read) 20%,var(--deep));box-shadow:inset 0 0 0 1px rgba(242,168,199,.45);font:600 12px/1.2 var(--text);color:var(--zone);overflow:hidden;overflow-wrap:anywhere;hyphens:auto}
+.book__left{position:absolute;top:0;left:0;right:0;background:rgba(8,8,12,.74);border-bottom:2px solid var(--read);border-radius:2px 3px 0 0}
+.book--paused .book__left{border-bottom-color:var(--pole)}
+.book--paused img,.book--paused .book__none{filter:saturate(.4)}
+.book--first-open{margin-left:22px}
+.shelf__key{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--dim)}
 
 /* Fingerprints */
 .prints{display:flex;flex-direction:column;gap:16px}
@@ -154,7 +162,6 @@ i.sw{display:inline-block;width:14px;height:6px;border-radius:3px;margin-right:8
 .ost__note{grid-column:2/-1;color:var(--haze);font-size:13px}
 .more{align-self:flex-start;background:none;border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:14px;color:var(--haze);cursor:pointer}
 .more:hover{color:var(--zone);border-color:rgba(237,241,250,.3)}
-.shelf .spine{transform-box:fill-box;transform-origin:bottom}
 
 /* Library map */
 .map{display:flex;flex-wrap:wrap;gap:20px 28px}
@@ -234,5 +241,7 @@ i.sw{display:inline-block;width:14px;height:6px;border-radius:3px;margin-right:8
   .stream{padding-top:40px}
   .stream__grid{gap:40px}
   .feel li{grid-template-columns:80px minmax(0,1fr) 24px}
+  .shelf__row{gap:8px}
+  .book__none{font-size:10px;padding:5px}
 }
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.today-ring{animation:none}.fig{transition:none}}

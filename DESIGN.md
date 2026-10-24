@@ -144,7 +144,7 @@ Small, soft corners on data marks: 2px on grid cells, 3px on tiles and map squar
 - **Constellation:** books, artists and shows as circles in their belt colour, sized by hours in the year. A solid line joins an artist to the book that was open while they played (thicker with more minutes); a dashed line joins a book to a show or film from the same weeks. Laid out once by a small force pass and label-collision pass, so it is still when it appears. Hover, tap or focus a star to dim everything outside its constellation and write one first-person sentence about it.
 - **Soundtrack:** under each fingerprint, a 6px bar on deep: one cyan stretch per artist heard while reading (full, 65% and 40% cyan), the rest silence, and a line with the minutes and the share read in silence. Time read before the music history began is left out and said so.
 - **Now lines:** a 14 by 6 belt swatch inline before the verb, the item in italics, metadata in haze, and an optional 3px meter in the belt colour.
-- **Shelf:** spines with height by pages and width by hours; every title stands rotated above its spine in haze, whole, never truncated. Open books stand apart, outlined, filled to progress; paused ones in polar rust.
+- **Shelf:** face out, like bookshelf.koplugin: each book stands by its cover (2:3), its height by pages, on shelves that wrap into more rows as the year fills. Finished books in the order she finished them; open ones stand apart, the unread part of the cover in shadow above a belt-coloured line at the page she reached, paused ones desaturated with a polar rust line. A book with no cover found is a pink-tinted tile with its whole title.
 - **Fingerprint:** one strip per book, one mark per ten pages, lighter where she lingered; re-read stretches get a rust mark below.
 - **Ranked lists:** rank, name, a belt-coloured bar and a value, separated by hairlines; artists flow into two columns on wide screens.
 
@@ -157,7 +157,7 @@ Motion carries information and happens once; nothing loops except today's ring. 
 - **Today:** the pale ring around today's spot breathes to 25% opacity every 3.2s.
 - **Figures:** a figure below the fold rises 10px and fades in once when it reaches the screen. Figures already in view never hide.
 - **Hours grid:** hours light up from 0h to 23h (22ms apart).
-- **Shelf:** spines grow up from the shelf line the first time it is seen.
+- **Shelf:** books rise onto the shelf the first time it is seen.
 - **Constellation:** stars fade in, then the lines draw from book to star.
 - **Menu:** the section on screen is marked in pale zone with an underline.
 

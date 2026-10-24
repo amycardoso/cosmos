@@ -422,77 +422,60 @@
   }
 
   // ---------- Reading ----------
-  // Width of a label in the shelf's 12px text face, to wrap long titles instead of cutting them.
-  const measure = (() => {
-    const ctx = document.createElement('canvas').getContext('2d');
-    return (t) => {
-      ctx.font = `12px ${getComputedStyle(document.body).getPropertyValue('--text') || 'sans-serif'}`;
-      return ctx.measureText(t).width;
-    };
-  })();
-  function wrap(text, max) {
-    const lines = [];
-    let line = '';
-    for (const word of text.split(/\s+/)) {
-      const next = line ? `${line} ${word}` : word;
-      if (line && measure(next) > max) { lines.push(line); line = word; } else line = next;
-    }
-    return lines.concat(line ? [line] : []);
-  }
-
+  // The year's shelf, face out like bookshelf.koplugin: every book stands by its cover,
+  // its height by pages. Finished books in the order she finished them, then the open ones.
+  // Rows wrap onto more shelves as the year fills up.
   function renderShelf() {
     const host = $('[data-shelf]');
     host.textContent = '';
-    const done = D.books.filter((b) => b.status === 'lido').sort((a, b) => a.finished.localeCompare(b.finished));
-    const open = D.books.filter((b) => b.status !== 'lido');
     if (!D.books.length) return emptyNote(host, 'Nenhum livro aberto este ano ainda.');
+    const done = D.books.filter((b) => b.status === 'lido').sort((a, b) => (a.finished || '').localeCompare(b.finished || ''));
+    const open = D.books.filter((b) => b.status !== 'lido');
     const maxP = Math.max(1, ...D.books.map((b) => b.pages || 0));
-    // Every title stands whole above its spine. A long one wraps onto a second or third
-    // rotated line, and the room above the spines grows to the longest label.
-    const LABEL = 150, LINE = 14, SPINE = 140, gapB = 4, apart = 40;
-    const labels = new Map(D.books.map((b) => [b, wrap(b.title, LABEL)]));
-    const labelH = Math.max(...D.books.map((b) => Math.max(...labels.get(b).map(measure)))) + 10;
-    const base = labelH + SPINE;
-    const natural = (b) => Math.max(labels.get(b).length * LINE + 6, 20 + b.hours * 1.6);
-    const h = (b) => 30 + (b.pages / maxP) * (SPINE - 30);
-    // Stretch the spines to fill the figure's width, so the shelf never sits squeezed in a corner.
-    const gaps = (D.books.length - 1) * gapB + (done.length && open.length ? apart : 0);
-    const sum = D.books.reduce((a, b) => a + natural(b), 0);
-    const avail = host.clientWidth || 560;
-    const k = Math.max(1, Math.min(2.4, (avail - gaps) / sum));
-    const w = (b) => natural(b) * k;
-    const width = Math.max(220, sum * k + gaps);
-    const svg = el('svg:svg', { viewBox: `0 0 ${width} ${base + 26}`, width, role: 'img', 'aria-label': `${done.length} livros terminados e ${open.length} abertos.` });
-    let x = 0;
-    const spine = (b, fill, frac) => {
-      const bw = w(b), bh = h(b);
-      const g = el('svg:g');
-      g.append(el('svg:title', { text: `${b.title}, ${b.author}. ${b.pages} páginas${b.hours ? `, ${num(b.hours, 1)} h` : ''}${frac < 1 ? `, ${Math.round(frac * 100)}%` : ''}` }));
-      if (frac < 1) g.append(el('svg:rect', { x, y: base - bh, width: bw, height: bh, rx: 2, fill: 'none', stroke: fill, 'stroke-opacity': 0.55 }));
-      g.append(el('svg:rect', { class: 'spine', x, y: base - bh * frac, width: bw, height: bh * frac, rx: 2, fill }));
-      const lines = labels.get(b);
-      const ty = base - bh - 6;
-      lines.forEach((line, i) => {
-        const tx = x + bw / 2 + 4 + (i - (lines.length - 1) / 2) * LINE;
-        g.append(el('svg:text', { x: tx, y: ty, transform: `rotate(-90 ${tx} ${ty})`, text: line }));
-      });
-      svg.append(g);
-      x += bw + gapB;
+    const small = window.matchMedia('(max-width: 640px)').matches;
+    const [lo, hi] = small ? [72, 112] : [96, 150];
+    const height = (b) => Math.round(lo + ((b.pages || maxP / 2) / maxP) * (hi - lo));
+    const book = (b) => {
+      const h = height(b), frac = b.status === 'lido' ? 1 : b.progress || 0;
+      const info = `${b.title}${b.author ? `, ${b.author}` : ''}. ${b.pages ? `${b.pages} páginas` : ''}${b.hours ? `, ${num(b.hours, 1)} h` : ''}${frac < 1 ? `, ${Math.round(frac * 100)}%` : ''}`;
+      const face = b.cover
+        ? el('img', { src: b.cover, alt: '', loading: 'lazy', decoding: 'async' })
+        : el('span', { class: 'book__none', text: b.title });
+      const item = el('li', { class: `book${b.status === 'pausado' ? ' book--paused' : ''}`, style: `--h:${h}px`, title: info }, [face]);
+      // An open book is lit up to the page she reached; the rest of the cover waits in shadow.
+      if (frac < 1) item.append(el('span', { class: 'book__left', style: `height:${(1 - frac) * 100}%` }));
+      item.append(el('span', { class: 'vh', text: info }));
+      return item;
     };
-    done.forEach((b, i) => spine(b, mix(COLORS.read, '#ffffff', (i % 2) * 0.18), 1));
-    // Open books stand at the right end, under their caption.
-    x = width - open.reduce((acc, b) => acc + w(b) + gapB, 0) + gapB;
-    open.forEach((b) => spine(b, b.status === 'pausado' ? COLORS.pole : COLORS.read, b.progress));
-    svg.append(el('svg:line', { x1: 0, x2: width, y1: base + 1, y2: base + 1, stroke: 'rgba(237,241,250,.25)' }));
-    svg.append(el('svg:text', { x: 0, y: base + 20, text: 'terminados' }));
-    svg.append(el('svg:text', { x: width, y: base + 20, 'text-anchor': 'end', text: 'abertos' }));
-    host.append(svg);
+    // Lay the books out in rows that fit the figure, each row on its own shelf.
+    const avail = host.clientWidth || 560, gap = small ? 8 : 10, apart = 28;
+    const items = done.map((b) => [b, false]).concat(open.map((b, k) => [b, k === 0 && done.length > 0]));
+    const rows = [[]];
+    let x = 0;
+    items.forEach(([b, first]) => {
+      const w = Math.round((height(b) * 2) / 3) + (first ? apart : 0);
+      if (x && x + w > avail) { rows.push([]); x = 0; }
+      rows[rows.length - 1].push([b, first && x > 0]);
+      x += w + gap;
+    });
+    const shelf = el('div', { class: 'shelf__case', role: 'list', 'aria-label': `${plural(done.length, 'livro terminado', 'livros terminados')} e ${plural(open.length, 'aberto', 'abertos')}.` });
+    rows.forEach((row) => {
+      const ul = el('ul', { class: 'shelf__row', role: 'presentation' });
+      row.forEach(([b, first]) => {
+        const it = book(b);
+        it.setAttribute('role', 'listitem');
+        if (first) it.classList.add('book--first-open');
+        ul.append(it);
+      });
+      shelf.append(ul);
+    });
+    host.append(shelf);
+    if (open.length && done.length) host.append(el('p', { class: 'shelf__key', html: '<span>terminados, na ordem em que terminei</span><span>abertos: acesos até onde cheguei</span>' }));
   }
-
-  // Spines grow up from the shelf the first time it comes into view.
+  // Books rise onto the shelf the first time it comes into view.
   $('[data-shelf]')._enter = () => {
     if (REDUCED) return;
-    $('[data-shelf]').querySelectorAll('.spine').forEach((r, k) => r.animate([{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)' }], { duration: 700, delay: k * 50, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' }));
+    $('[data-shelf]').querySelectorAll('.book').forEach((b, k) => b.animate([{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'none' }], { duration: 600, delay: k * 45, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' }));
   };
 
   // What played while she read a book, as a bar: one stretch per artist, the rest in silence.
