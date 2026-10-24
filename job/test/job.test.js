@@ -92,6 +92,17 @@ test('compose pads cached day arrays and survives a missing source', () => {
   assert.ok(!JSON.stringify(d).includes('timeline'), 'raw timelines never reach the site');
 });
 
+test('compose keeps populated source timelines private', () => {
+  const d = compose({
+    read: { data: { timeline: [{ title: 'Duna', sittings: [[NOW - 3600000, NOW]] }] }, status: 'ok', at: NOW },
+    listen: { data: { timeline: [[NOW - 60000, 1800000, 'Björk']], historySince: NOW - 7200000 }, status: 'ok', at: NOW },
+    watch: { data: { timeline: [[NOW - 60000, 50, 'Shōgun', 'episode']] }, status: 'ok', at: NOW },
+  }, span, NOW);
+  assert.ok(d.connections.soundtracks.Duna, 'the links are computed');
+  const json = JSON.stringify(d);
+  assert.ok(!json.includes('timeline') && !json.includes('sittings') && !json.includes('historySince'), 'raw timelines never reach the site');
+});
+
 test('periods reach back across the new year, the year stays this year', () => {
   const span = yearSpan(Date.parse('2026-01-03T15:00:00Z'));
   const dec30 = Date.parse('2025-12-30T15:00:00Z');

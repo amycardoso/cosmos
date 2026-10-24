@@ -48,7 +48,8 @@ export function connections({ books = [], plays = [], watched = [], since = null
     const covered = heard.reduce((a, [s, e]) => a + (e - Math.max(s, since)), 0) / 60000;
     const byArtist = new Map();
     let i = 0;
-    for (const [s, e] of heard) {
+    for (const [start, e] of heard) {
+      const s = Math.max(start, since); // minutes before the history began are not weighed
       while (i < sorted.length && sorted[i][0] < s) i++;
       // A play ending inside or just after the sitting may have started before it.
       for (let j = i; j < sorted.length && sorted[j][0] - sorted[j][1] < e; j++) {

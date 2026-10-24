@@ -97,7 +97,7 @@
     const t0 = performance.now();
     const step = (t) => {
       if (+node.dataset.v !== to) return; // a newer count took over
-      const p = Math.min(1, (t - t0) / 900), e = 1 - Math.pow(1 - p, 4);
+      const p = Math.max(0, Math.min(1, (t - t0) / 900)), e = 1 - Math.pow(1 - p, 4);
       node.textContent = fmtMin(Math.round(from + (to - from) * e));
       if (p < 1) requestAnimationFrame(step);
     };
