@@ -46,7 +46,7 @@ export function normEntry(e) {
     plays: first(e.plays, e.watched ? 1 : 0),
     watched: first(e.watched, (e.plays || 0) > 0),
     rating: first(e.rating, e.my_rating, null),
-    feelings: first(e.feelings, e.my_feelings, []),
+    feelings: first(e.feelings, e.my_feelings, e.feeling ? [e.feeling] : []),
     minutes: first(e.runtime_minutes, e.runtime, null),
     deleted: Boolean(first(e.deleted, e.tombstone, e.deleted_at, false)),
   };
