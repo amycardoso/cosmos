@@ -629,6 +629,78 @@
     $('[data-updated]').textContent = `Atualizado em ${day} de ${MONTHS[m - 1]}, ${t.slice(0, 5).replace(':', 'h')}.`;
   }
 
+  // ---------- The planet turns ----------
+  // Hubble saw one face of Jupiter, so the photo is unrolled into a map of that face and its
+  // mirror for the far side, then drawn back onto a sphere a little further round each frame.
+  // The limb's darkening is taken out of the map and laid back on at draw time, so the belts
+  // keep their light as they cross the disc. Under reduced motion the photo stays still.
+  function spinPlanet() {
+    const img = $('.now__planet');
+    if (REDUCED || !img) return;
+    const start = () => {
+      const S = 640, cx = 320.5, cy = 316.5, rx = 317.5, ry = 307.5; // the disc inside the photo
+      const src = document.createElement('canvas');
+      src.width = src.height = S;
+      const sctx = src.getContext('2d');
+      sctx.drawImage(img, 0, 0, S, S);
+      let px;
+      try { px = sctx.getImageData(0, 0, S, S).data; } catch { return; } // a file:// page can't read it back
+      const limb = (mu) => Math.min(1, 0.33 + 0.9 * mu);
+      // Taken out of the map more gently than it is put back, so the stretched rim never burns white.
+      const lift = (mu) => Math.max(0.8, Math.min(1, 0.62 + 0.55 * mu));
+      // The map: 1024 longitudes by 512 latitudes. Only the face out to 70 degrees is sharp
+      // enough to use, so that face is stretched to cover each half of the globe.
+      const TW = 1024, TH = 512, tex = new Float32Array(TW * TH * 3);
+      for (let j = 0; j < TH; j++) {
+        const lat = ((j + 0.5) / TH - 0.5) * Math.PI;
+        for (let i = 0; i < TW; i++) {
+          const lon = ((i + 0.5) / TW) * 2 * Math.PI - Math.PI;
+          const a = Math.abs(lon), phi = (Math.PI / 2 - Math.abs(Math.PI / 2 - a)) * (70 / 90) * Math.sign(lon);
+          const x = cx + rx * Math.cos(lat) * Math.sin(phi), y = cy + ry * Math.sin(lat);
+          const k = (Math.round(y) * S + Math.round(x)) * 4, l = lift(Math.cos(lat) * Math.cos(phi)), o = (j * TW + i) * 3;
+          tex[o] = px[k] / l; tex[o + 1] = px[k + 1] / l; tex[o + 2] = px[k + 2] / l;
+        }
+      }
+      // Each screen pixel's latitude, longitude and shading, worked out once.
+      const N = Math.round(Math.min(2, window.devicePixelRatio || 1) * (img.clientWidth || 260));
+      const out = document.createElement('canvas');
+      out.width = out.height = N;
+      out.className = 'now__planet';
+      out.setAttribute('role', 'img');
+      out.setAttribute('aria-label', img.alt);
+      const ctx = out.getContext('2d');
+      const frame = ctx.createImageData(N, N);
+      const ox = N / 2, oy = N / 2 * (cy / (S / 2)), Rx = (N / 2) * (rx / (S / 2)), Ry = (N / 2) * (ry / (S / 2));
+      const cells = [];
+      for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+        const u = (x + 0.5 - ox) / Rx, v = (y + 0.5 - oy) / Ry, r2 = u * u + v * v;
+        if (r2 >= 1) continue;
+        const lat = Math.asin(v), lon = Math.asin(Math.max(-1, Math.min(1, u / Math.cos(lat))));
+        const mu = Math.sqrt(1 - r2);
+        const edge = Math.min(1, (1 - Math.sqrt(r2)) * Rx); // a soft last pixel at the rim
+        cells.push((y * N + x) * 4, Math.min(TH - 1, Math.floor((lat / Math.PI + 0.5) * TH)), (lon / (2 * Math.PI)) * TW, limb(mu), edge);
+      }
+      img.replaceWith(out);
+      const PERIOD = 60000; // one turn a minute, west to east as seen from here: features cross the disc left to right
+      let raf = 0, t0 = performance.now(), visible = true;
+      const draw = (t) => {
+        const shift = (((t - t0) / PERIOD) % 1) * TW, d = frame.data;
+        for (let c = 0; c < cells.length; c += 5) {
+          const k = cells[c], i = Math.floor(cells[c + 2] - shift + TW * 2.5) % TW, o = (cells[c + 1] * TW + i) * 3, s = cells[c + 3];
+          d[k] = tex[o] * s; d[k + 1] = tex[o + 1] * s; d[k + 2] = tex[o + 2] * s; d[k + 3] = 255 * cells[c + 4];
+        }
+        ctx.putImageData(frame, 0, 0);
+        raf = visible && !document.hidden ? requestAnimationFrame(draw) : 0;
+      };
+      const resume = () => { if (!raf && visible && !document.hidden) raf = requestAnimationFrame(draw); };
+      document.addEventListener('visibilitychange', resume);
+      if ('IntersectionObserver' in window) new IntersectionObserver(([e]) => { visible = e.isIntersecting; resume(); }).observe(out);
+      raf = requestAnimationFrame(draw);
+    };
+    if (img.complete && img.naturalWidth) start();
+    else img.addEventListener('load', start, { once: true });
+  }
+
   // ---------- Period control ----------
   const buttons = [...document.querySelectorAll('[data-period]')];
   function setPeriod(p) {
@@ -652,6 +724,7 @@
   });
 
   renderNow();
+  spinPlanet();
   renderSky();
   renderShelf();
   // The shelf fills its figure, so draw it again when the figure changes width.

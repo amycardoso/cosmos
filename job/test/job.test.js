@@ -162,7 +162,7 @@ test('covers: titles and authors as KOReader stores them', async () => {
 test('skoob: adds this year\'s finished books KOReader does not know', async () => {
   const { normSkoob, withSkoob } = await import('../src/skoob.js');
   const skoob = normSkoob([
-    { title: 'Piranesi', author: 'Susanna Clarke', pages: 272, finished_at: '2026-03-12T03:00:00Z' },
+    { title: 'Piranesi', author: ' Susanna Clarke ', pages: 272, finished_at: '2026-03-12T03:00:00Z', cover_filename: 'https://skoob.s3.amazonaws.com/livros/1/p.jpg' },
     { title: 'Torto Arado', author: 'Itamar Vieira Junior', pages: 264, finished_at: '2026-01-20T02:00:00Z' },
     { title: 'Velho', author: 'X', pages: 100, finished_at: '2025-12-01T12:00:00Z' },
     { title: 'Sem data', author: 'Y', pages: 50, finished_at: null },
@@ -170,6 +170,9 @@ test('skoob: adds this year\'s finished books KOReader does not know', async () 
     { title: 'Torto arado', author: 'Itamar Vieira Junior', pages: 264, finished_at: '2026-01-20T02:00:00Z' },
   ]);
   assert.equal(skoob.length, 4);
+  assert.equal(skoob[0].author, 'Susanna Clarke');
+  assert.equal(skoob[0].cover, 'https://skoob.s3.amazonaws.com/livros/1/p.jpg');
+  assert.equal(skoob[1].cover, null);
   const read = { books: [{ title: 'Piranesi: edição especial', status: 'lido' }], library: [], fingerprints: [] };
   const out = withSkoob(read, skoob, span);
   assert.deepEqual(out.books.map((b) => b.title), ['Piranesi: edição especial', 'Torto Arado']);
@@ -212,4 +215,53 @@ test('connections: what played during each book, silence, and shows in the same 
   const pairs = c.links.map((l) => `${l.a} ${l.b} ${l.how}`).sort();
   assert.deepEqual(pairs, ['book:Duna artist:Björk during', 'book:Duna artist:Radiohead during', 'book:Duna show:Shōgun weeks']);
   assert.equal(c.stars.find((x) => x.id === 'artist:Björk').hours, 1.3); // all the time with her this year
+});
+
+test('skoob: the same book under another title, a broken charset, or a cover from Skoob', async () => {
+  const { sameRead, withSkoob } = await import('../src/skoob.js');
+  const narnia = { title: 'As Crônicas de Nárnia - Coleção de Luxo: O Leão, a Feiticeira e o Guarda-Roupa', author: 'C. S. Lewis', finished: '2026-02-10' };
+  assert.ok(sameRead(narnia, { title: 'O Le�o, a Feiticeira e o Guarda-Roupa (As Cr�nicas de N�rnia #1)', author: 'C. S. Lewis', finished: '2026-02-10' }));
+  const choc = { title: 'Chocolate quente às quintas-feiras', author: 'Michiko Aoyama', finished: '2026-05-02' };
+  assert.ok(sameRead(choc, { title: 'Chocolate Quente �s Quintas-Feiras', author: 'Michiko Aoyama', finished: '2026-05-03' }));
+  // Another book by the same author months apart stays apart.
+  assert.ok(!sameRead(choc, { title: 'A Biblioteca dos Sonhos Secretos', author: 'Michiko Aoyama', finished: '2026-08-20' }));
+  assert.ok(!sameRead(choc, { title: 'A Biblioteca dos Sonhos Secretos', author: 'Michiko Aoyama', finished: '2026-05-03' }));
+  assert.ok(!sameRead({ title: 'Harry Potter 1', author: 'J.K. Rowling' }, { title: 'Harry Potter 2', author: 'J.K. Rowling' }));
+  const read = { books: [{ ...choc, status: 'lido' }], library: [], fingerprints: [] };
+  const out = withSkoob(read, [{ title: 'Chocolate Quente �s Quintas-Feiras', author: 'Michiko Aoyama', pages: 160, finished: '2026-05-03', cover: 'https://example.org/c.jpg' }], span);
+  assert.equal(out.books.length, 1);
+  assert.equal(out.books[0].coverUrl, 'https://example.org/c.jpg');
+});
+
+test('screens: a backlog ticked off at once is not hours of that day', async () => {
+  const { backfill } = await import('../src/bingers.js');
+  const t0 = Date.parse('2026-09-08T15:00:00Z');
+  const bulk = Array.from({ length: 30 }, (_, i) => ({ start: t0 + i * 2000, minutes: 45 }));
+  // Three episodes marked together after watching them stay: a short burst.
+  const evening = Array.from({ length: 3 }, (_, i) => ({ start: t0 + 86400000 + i * 60000, minutes: 45 }));
+  const binge = Array.from({ length: 10 }, (_, i) => ({ start: t0 + 2 * 86400000 + i * 46 * 60000, minutes: 45 }));
+  const epic = [{ start: t0 + 3 * 86400000, minutes: 420 }];
+  const marked = backfill([...bulk, ...evening, ...binge, ...epic]);
+  assert.equal(marked.size, 30);
+  assert.ok(bulk.every((s) => marked.has(s)));
+});
+
+test('covers: Skoob\'s cover skips the lookup', async () => {
+  const { covers } = await import('../src/covers.js');
+  let asked = 0;
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => ({ ok: true, headers: new Map([['content-type', 'image/jpeg']]), arrayBuffer: async () => new ArrayBuffer(2000) });
+  try {
+    const out = await covers([{ title: 'A', author: 'B', coverUrl: 'https://example.org/a.jpg' }], {}, 1, async () => (asked++, { url: null, failed: false }));
+    assert.equal(asked, 0);
+    assert.equal(out.cache['a|b'].url, 'https://example.org/a.jpg');
+    assert.ok(out.images['a|b']);
+    // A broken Skoob address keeps the cover that already worked.
+    globalThis.fetch = async (url) => (url.includes('skoob') ? { ok: false, headers: new Map() } : { ok: true, headers: new Map([['content-type', 'image/jpeg']]), arrayBuffer: async () => new ArrayBuffer(2000) });
+    const kept = await covers([{ title: 'A', author: 'B', coverUrl: 'https://skoob.example/x.jpg' }], { 'a|b': { url: 'https://example.org/a.jpg', at: 1, v: 2 } }, 2);
+    assert.equal(kept.cache['a|b'].url, 'https://example.org/a.jpg');
+    assert.ok(kept.images['a|b']);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
 });

@@ -128,6 +128,8 @@ export async function main() {
       console.log(`covers: failed (${err.message})`);
     }
   }
+  // The page shows the copies served from the site, never a catalogue's address.
+  for (const b of data.books) delete b.coverUrl;
   await writeFile('dist/data/cosmos.js', `window.COSMOS_DATA = ${JSON.stringify(data)};\n`);
   console.log('dist/ ready');
 }

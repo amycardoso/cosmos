@@ -81,7 +81,7 @@ export function reading(db, span, nowMs) {
     list.push({
       id: b.id,
       title: b.title || 'Sem título',
-      author: (b.authors || '').split('\n')[0],
+      author: (b.authors || '').split('\n')[0].replace(/[\s;,]+$/, ''),
       pages: b.pages || maxPage,
       lang: lang(b.language),
       highlights: b.highlights || 0,
@@ -107,7 +107,7 @@ export function reading(db, span, nowMs) {
     library: list.map((b) => ({ title: b.title, lang: b.lang, status: b.status === 'lido' ? 'finished' : b.status === 'lendo' ? 'reading' : 'on_hold' })),
     fingerprints: year.slice(0, 6).map(fingerprint),
     // For the connections only; the site never receives it.
-    timeline: year.map((b) => ({ title: b.title, sittings: sittings(b.stats.filter((s) => inPeriod(s.start, span, null))) })),
+    timeline: year.map((b) => ({ title: b.title, hours: b.hours, sittings: sittings(b.stats.filter((s) => inPeriod(s.start, span, null))) })),
   };
 }
 
@@ -128,7 +128,8 @@ export function fingerprint(b) {
     furthest = Math.max(furthest, s.page);
   }
   let best = null;
-  for (let i = 0; i < n; i++) {
+  // The first stretch is front matter (cover, contents) she flips past on every return.
+  for (let i = 1; i < n; i++) {
     if (!reread[i]) continue;
     let j = i;
     while (j + 1 < n && reread[j + 1]) j++;

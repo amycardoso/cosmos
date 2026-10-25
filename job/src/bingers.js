@@ -9,6 +9,7 @@ import { minutesPerDay, clocks, inPeriod, PERIOD_DAYS, round1 } from './aggregat
 const API = 'https://api.bingers.app/v1';
 const EPISODE_MINUTES = 45; // used only when Bingers sends no runtime
 const MOVIE_MINUTES = 110;
+const BACKFILL_MINUTES = 360; // a burst of check-ins longer than this was marked after the fact
 
 // Retry-After is either seconds or an HTTP date; wait 5 s when it is missing, never over a minute.
 function retryAfter(value) {
@@ -174,6 +175,29 @@ export async function fetchBingers(env, mirror) {
   return { mirror: synced, library: lib, seasons };
 }
 
+// Entries checked in faster than they could be watched (the next one less than half its
+// runtime after the last) form a burst. A long burst is a backlog marked all at once, like a
+// whole series ticked off in a minute: real hours for the show, but not hours of that day.
+export function backfill(sessions) {
+  const out = new Set();
+  const sorted = [...sessions].sort((a, b) => a.start - b.start);
+  let burst = [];
+  const close = () => {
+    // A single long film is not a burst.
+    if (burst.length > 1 && burst.reduce((a, s) => a + s.minutes, 0) > BACKFILL_MINUTES) for (const s of burst) out.add(s);
+  };
+  for (const s of sorted) {
+    const last = burst[burst.length - 1];
+    if (last && s.start - last.start < (s.minutes * 60000) / 2) burst.push(s);
+    else {
+      close();
+      burst = [s];
+    }
+  }
+  close();
+  return out;
+}
+
 export function screens({ mirror, library: lib, seasons }, span) {
   const titles = mirror.titles;
   const byId = new Map(lib.map((t) => [t.id, t]));
@@ -196,6 +220,8 @@ export function screens({ mirror, library: lib, seasons }, span) {
   }
 
   const yearSessions = sessions.filter((s) => inPeriod(s.start, span, null));
+  const marked = backfill(sessions);
+  const lived = sessions.filter((s) => !marked.has(s));
   const hoursByTitle = new Map();
   for (const s of yearSessions) hoursByTitle.set(s.entry.titleId, (hoursByTitle.get(s.entry.titleId) || 0) + s.minutes / 60);
 
@@ -217,12 +243,12 @@ export function screens({ mirror, library: lib, seasons }, span) {
   const watchlist = Object.fromEntries(QUEUE.map((k) => [k, lib.filter((t) => t.status === k).length]));
 
   return {
-    watchingDays: minutesPerDay(sessions, span),
-    watchingClocks: clocks(sessions, span),
+    watchingDays: minutesPerDay(lived, span),
+    watchingClocks: clocks(lived, span),
     shows: shows.concat(films),
     watchlist,
     // For the connections only: [watched at, minutes, title, kind]. The site never receives it.
-    timeline: yearSessions.map((s) => [s.start, Math.round(s.minutes), nameOf(s.entry.titleId), s.entry.kind]),
+    timeline: yearSessions.filter((s) => !marked.has(s)).map((s) => [s.start, Math.round(s.minutes), nameOf(s.entry.titleId), s.entry.kind]),
     periods: { year: { feelings: feelings(null) }, month: { feelings: feelings(PERIOD_DAYS.month) }, week: { feelings: feelings(PERIOD_DAYS.week) } },
   };
 }

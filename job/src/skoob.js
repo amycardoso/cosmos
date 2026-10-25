@@ -8,16 +8,50 @@ import { sameBook as simple } from './koreader.js';
 export function normSkoob(items) {
   return items
     .filter((b) => b.title && Number.isFinite(Date.parse(b.finished_at)))
-    .map((b) => ({ title: b.title, author: b.author || '', pages: Number(b.pages) || 0, finished: local(Date.parse(b.finished_at)).date }));
+    .map((b) => ({ title: b.title.trim(), author: (b.author || '').trim(), pages: Number(b.pages) || 0, finished: local(Date.parse(b.finished_at)).date, cover: /^https:\/\//.test(b.cover_filename) ? b.cover_filename : null }));
+}
+
+// Words that can identify a book: accents off, short words out, and any word holding a
+// replacement character (an import decoded with the wrong charset) left out of the comparison.
+const tokens = (t) => (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  .split(/[^a-z0-9\ufffd]+/).filter((w) => w && !w.includes('\ufffd'));
+const words = (t) => new Set(tokens(t).filter((w) => w.length > 2 && !/^\d+$/.test(w)));
+// Volume numbers: "Harry Potter 1" and "Harry Potter 2" share every other word.
+const numbers = (t) => new Set(tokens(t).filter((w) => /^\d+$/.test(w)));
+const days = (a, b) => Math.abs(Date.parse(a) - Date.parse(b)) / 86400000;
+
+// The same book often carries different titles on the two shelves ("As Crônicas de Nárnia - Coleção
+// de Luxo: O Leão, a Feiticeira…" on the e-reader, "O Leão, a Feiticeira… (As Crônicas de Nárnia #1)"
+// on Skoob). It is the same book when the main titles match, when nearly all of Skoob's title words
+// are in the other one, or when the same author's book with a title word in common was finished
+// within a few days. Two titles that both carry volume numbers must share one.
+export function sameRead(k, s) {
+  if (simple(k.title) === simple(s.title)) return true;
+  const kn = numbers(k.title), sn = [...numbers(s.title)];
+  if (kn.size && sn.length && !sn.some((n) => kn.has(n))) return false;
+  const kw = words(k.title), sw = [...words(s.title)];
+  const shared = sw.filter((w) => kw.has(w)).length;
+  if (sw.length >= 2 && shared / sw.length >= 0.75) return true;
+  const ka = words(k.author), sa = [...words(s.author)];
+  return Boolean(shared && k.finished && s.finished && days(k.finished, s.finished) <= 3 && sa.some((w) => ka.has(w)));
 }
 
 // read: the reading source's output. Returns it with Skoob's books of the year added.
 export function withSkoob(read, skoob, span) {
   if (!read || !Array.isArray(skoob) || !skoob.length) return read;
-  const known = new Set(read.books.map((b) => simple(b.title)));
-  const extra = skoob
-    // Adding each title as it is taken also drops repeats from overlapping shelf pages.
-    .filter((b) => b.finished.startsWith(`${span.year}-`) && !known.has(simple(b.title)) && known.add(simple(b.title)))
-    .map((b) => ({ title: b.title, author: b.author, pages: b.pages, lang: 'outro', highlights: 0, hours: 0, status: 'lido', progress: 1, finished: b.finished, source: 'skoob' }));
+  const taken = [...read.books];
+  const extra = [];
+  for (const b of skoob) {
+    if (!b.finished.startsWith(`${span.year}-`)) continue;
+    // Checking against what was already taken also drops repeats from overlapping shelf pages.
+    const twin = taken.find((k) => sameRead(k, b));
+    if (twin) {
+      if (b.cover) twin.coverUrl ??= b.cover; // Skoob knows the Brazilian edition's cover
+      continue;
+    }
+    const book = { title: b.title, author: b.author, pages: b.pages, lang: 'outro', highlights: 0, hours: 0, status: 'lido', progress: 1, finished: b.finished, source: 'skoob', coverUrl: b.cover || null };
+    taken.push(book);
+    extra.push(book);
+  }
   return { ...read, books: read.books.concat(extra) };
 }
