@@ -319,3 +319,23 @@ test('covers: Skoob\'s cover skips the lookup', async () => {
     globalThis.fetch = realFetch;
   }
 });
+
+test('music: a play counts from when it began, not when it ended', () => {
+  // Ended at 00:02 in São Paulo after four minutes: it began the day before, at 23:58.
+  const p = { at: Date.parse('2026-03-11T03:02:00Z'), id: 'x', title: 'T', artists: ['A'], album: '', ms: 4 * 60000 };
+  const out = music([p], null, span);
+  const day = dayIndex('2026-03-10', span.year);
+  assert.equal(out.listeningDays[day], 4);
+  assert.equal(out.listeningDays[day + 1], 0);
+});
+
+test('connections: an artist heard for a few seconds is not part of the soundtrack', async () => {
+  const { connections } = await import('../src/connections.js');
+  const t = (iso) => Date.parse(iso);
+  const c = connections({
+    books: [{ title: 'Duna', sittings: [[t('2026-10-10T01:00:00Z'), t('2026-10-10T02:00:00Z')]] }],
+    plays: [[t('2026-10-10T01:00:10Z'), 3 * 60000, 'Björk']], // only its last ten seconds fall in the sitting
+    since: t('2026-01-01T00:00:00Z'),
+  }, span);
+  assert.deepEqual(c.soundtracks.Duna.artists, []);
+});

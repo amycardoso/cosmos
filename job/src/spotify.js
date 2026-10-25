@@ -84,7 +84,8 @@ export async function fetchSpotify(env, history) {
 export function music(all, nowPlaying, span) {
   // The views only look back as far as last year; older plays wait in the store.
   const history = all.filter((p) => p.at >= Date.UTC(span.year - 1, 0, 1));
-  const sessions = history.map((p) => ({ start: p.at, minutes: p.ms / 60000, play: p }));
+  // A play's time is when it ended, so it began its length earlier.
+  const sessions = history.map((p) => ({ start: p.at - p.ms, minutes: p.ms / 60000, play: p }));
   const thisYear = history.filter((p) => inPeriod(p.at, span, null));
   const periodPlays = (n) => history.filter((p) => inPeriod(p.at, span, n));
   const latest = history[history.length - 1];

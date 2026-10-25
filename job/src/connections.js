@@ -4,7 +4,7 @@
 import { local, dayIndex } from './time.js';
 
 const SESSION_GAP = 5 * 60000; // page turns closer than this are one sitting
-const MIN_TOGETHER = 10; // minutes of an artist during a book before it counts as a link
+const MIN_TOGETHER = 5; // minutes of an artist during a book before it counts as a link
 const ARTISTS_PER_BOOK = 3;
 const SHOWS_PER_BOOK = 2;
 const WEEK_READ = 30; // minutes in a week before a book counts as being read that week
@@ -59,7 +59,8 @@ export function connections({ books = [], plays = [], watched = [], since = null
       }
     }
     const music = [...byArtist.values()].reduce((a, m) => a + m, 0);
-    const artists = [...byArtist.entries()].map(([name, m]) => ({ name, minutes: Math.round(m) })).sort((a, b) => b.minutes - a.minutes);
+    // An artist heard for less than half a minute rounds to nothing and is left out.
+    const artists = [...byArtist.entries()].map(([name, m]) => ({ name, minutes: Math.round(m) })).filter((a) => a.minutes > 0).sort((a, b) => b.minutes - a.minutes);
     soundtracks[b.title] = {
       covered: Math.round(covered),
       music: Math.round(Math.min(music, covered)),
