@@ -35,13 +35,20 @@ export function family(genres) {
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Retry-After is either seconds or a date; null when it's missing, unreadable or past.
+export function retryAfter(value, now = Date.now()) {
+  if (!value) return null;
+  const ms = /^\d+$/.test(value.trim()) ? +value * 1000 : Date.parse(value) - now;
+  return ms > 0 ? ms : null;
+}
+
 // MusicBrainz answers 503 when a shared address (a GitHub runner's, say) asks too often:
 // wait as long as it says, or a little longer each time, before giving up.
 async function mb(path, pause = wait) {
   for (let k = 0; ; k++) {
     const res = await fetch(MB + path, { headers: { 'User-Agent': UA, Accept: 'application/json' } });
     if (res.status === 503 && k < 3) {
-      await pause((+res.headers.get('retry-after') || 2 ** k * 3) * 1000);
+      await pause(retryAfter(res.headers.get('retry-after')) ?? 2 ** k * 3000);
       continue;
     }
     if (res.status === 503) throw new Error('MusicBrainz is rate limiting');

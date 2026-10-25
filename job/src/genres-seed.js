@@ -12,13 +12,15 @@ if (!out || !historyFile || !currentFile) {
   console.log('usage: node job/src/genres-seed.js <out.json.gz> <history.json.gz> <current-genres.json.gz> [artists]');
   process.exit(1);
 }
-// A key that isn't in KV yet comes back as an empty or plain-text file: start from nothing.
+// A key that isn't in KV yet comes back as a missing, empty or plain-text file: start from
+// nothing. Gzip that doesn't decode is a broken download, so stop before writing over KV.
 const gz = async (f) => {
-  try {
-    return JSON.parse(gunzipSync(await readFile(f)).toString('utf8'));
-  } catch {
-    return null;
-  }
+  const raw = await readFile(f).catch((err) => {
+    if (err.code === 'ENOENT') return Buffer.alloc(0);
+    throw err;
+  });
+  if (raw[0] !== 0x1f || raw[1] !== 0x8b) return null;
+  return JSON.parse(gunzipSync(raw).toString('utf8'));
 };
 const history = (await gz(historyFile)) || [];
 const ms = new Map();
@@ -30,4 +32,4 @@ await writeFile(out, gzipSync(JSON.stringify(found.cache)));
 // How much of the listening now has a genre family: the page draws genres from half up.
 const total = ranked.reduce((a, [, m]) => a + m, 0);
 const known = ranked.reduce((a, [name, m]) => a + (family(found.cache[name]?.g) ? m : 0), 0);
-console.log(`${found.looked} artists looked up, ${found.left} left; ${Math.round((known / total) * 100)}% of the hours have a genre; written to ${out}`);
+console.log(`${found.looked} artists looked up, ${found.left} left; ${total ? Math.round((known / total) * 100) : 0}% of the hours have a genre; written to ${out}`);
