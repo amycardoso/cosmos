@@ -24,7 +24,7 @@ export function sittings(stats) {
 const overlap = (a0, a1, b0, b1) => Math.max(0, Math.min(a1, b1) - Math.max(a0, b0));
 const week = (ms, year) => Math.floor(dayIndex(local(ms).date, year) / 7);
 
-// books: [{ title, sittings: [[start, end]] }]
+// books: [{ title, hours, sittings: [[start, end]] }]
 // plays: [[endMs, ms, artist]] (Spotify's played_at is when the track ended)
 // watched: [[startMs, minutes, title, kind]]
 // since: first play in the music history, so time read before it is not called silence.
@@ -67,7 +67,8 @@ export function connections({ books = [], plays = [], watched = [], since = null
     };
     const top = artists.filter((a) => a.minutes >= MIN_TOGETHER).slice(0, ARTISTS_PER_BOOK);
     if (!top.length) continue;
-    const bk = star('book', b.title, read / 60);
+    // Sittings bridge short pauses, so the book's own hours size its star.
+    const bk = star('book', b.title, b.hours ?? read / 60);
     for (const a of top) links.push({ a: bk, b: star('artist', a.name, a.minutes / 60), minutes: a.minutes, how: 'during' });
   }
 
@@ -98,7 +99,7 @@ export function connections({ books = [], plays = [], watched = [], since = null
       .slice(0, SHOWS_PER_BOOK);
     if (!near.length) continue;
     const read = b.sittings.reduce((a, [s, e]) => a + (e - s), 0) / 3600000;
-    const bk = stars.has(`book:${b.title}`) ? `book:${b.title}` : star('book', b.title, read);
+    const bk = stars.has(`book:${b.title}`) ? `book:${b.title}` : star('book', b.title, b.hours ?? read);
     for (const x of near) {
       const [kind, ...rest] = x.key.split(':');
       const id = `${kind}:${rest.join(':')}`;
