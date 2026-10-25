@@ -2,6 +2,8 @@
 (function () {
   const D = window.COSMOS_DATA;
   const $ = (s, r = document) => r.querySelector(s);
+  // Each page carries only its own sections; a renderer whose host isn't here is skipped.
+  const has = (s) => !!document.querySelector(s);
   const NS = 'http://www.w3.org/2000/svg';
   const el = (tag, attrs = {}, kids = []) => {
     const n = tag.startsWith('svg:') ? document.createElementNS(NS, tag.slice(4)) : document.createElement(tag);
@@ -86,7 +88,6 @@
     }
     $('[data-readout]').textContent = 'Passe o dedo ou o mouse pelas faixas para ver os três hábitos de cada dia.';
     hit = null;
-    renderLines(r);
   }
 
   // Totals count from where they were to the new value, so a period change reads as a change.
@@ -217,12 +218,13 @@
     const label = period === 'year' ? 'em ' + D.year : period === 'month' ? 'nos últimos 30 dias' : 'nos últimos 7 dias';
     const done = D.books.filter((b) => b.status === 'lido').length;
     const films = D.shows.filter((x) => x.kind === 'filme').length;
-    $('[data-read-line]').textContent = `${fmtMin(sum(D.readingDays, r))} ${label}. ${plural(done, 'livro terminado', 'livros terminados')} no ano.`;
+    const line = (k, text) => has(`[data-${k}-line]`) && ($(`[data-${k}-line]`).textContent = text);
+    line('read', `${fmtMin(sum(D.readingDays, r))} ${label}. ${plural(done, 'livro terminado', 'livros terminados')} no ano.`);
     const topArtist = D.periods[period].artists[0];
     const since = D.sources?.music?.since;
     const counted = since > 0 && r[0] < since ? ` (contando desde ${fmtDay(since)})` : '';
-    $('[data-music-line]').textContent = `${fmtMin(sum(D.listeningDays, r))} ${label}${counted}.${topArtist ? ` Quem mais tocou: ${topArtist.name}.` : ''}`;
-    $('[data-screen-line]').textContent = `${fmtMin(sum(D.watchingDays, r))} ${label}. ${plural(films, 'filme', 'filmes')} no ano.`;
+    line('music', `${fmtMin(sum(D.listeningDays, r))} ${label}${counted}.${topArtist ? ` Quem mais tocou: ${topArtist.name}.` : ''}`);
+    line('screen', `${fmtMin(sum(D.watchingDays, r))} ${label}. ${plural(films, 'filme', 'filmes')} no ano.`);
   }
 
   // ---------- Hour x weekday, the three habits together ----------
@@ -473,7 +475,7 @@
     if (open.length && done.length) host.append(el('p', { class: 'shelf__key', html: '<span>terminados, na ordem em que terminei</span><span>abertos: acesos até onde cheguei</span>' }));
   }
   // Books rise onto the shelf the first time it comes into view.
-  $('[data-shelf]')._enter = () => {
+  if (has('[data-shelf]')) $('[data-shelf]')._enter = () => {
     if (REDUCED) return;
     $('[data-shelf]').querySelectorAll('.book').forEach((b, k) => b.animate([{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'none' }], { duration: 600, delay: k * 45, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' }));
   };
@@ -706,11 +708,12 @@
   function setPeriod(p) {
     period = p;
     buttons.forEach((b) => { b.setAttribute('aria-checked', String(b.dataset.period === p)); b.tabIndex = b.dataset.period === p ? 0 : -1; });
-    renderOverview();
-    renderDay();
-    renderTracks();
-    renderArtists();
-    renderFeelings();
+    if (has('[data-title]')) renderOverview();
+    renderLines(range());
+    if (has('[data-day]')) renderDay();
+    if (has('[data-tracks]')) renderTracks();
+    if (has('[data-artists]')) renderArtists();
+    if (has('[data-feelings]')) renderFeelings();
   }
   buttons.forEach((b, i) => {
     b.addEventListener('click', () => setPeriod(b.dataset.period));
@@ -723,22 +726,22 @@
     });
   });
 
-  renderNow();
+  if (has('[data-now]')) renderNow();
   spinPlanet();
-  renderSky();
-  renderShelf();
+  if (has('[data-sky]')) renderSky();
+  if (has('[data-shelf]')) renderShelf();
   // The shelf fills its figure, so draw it again when the figure changes width.
-  if ('ResizeObserver' in window) {
+  if (has('[data-shelf]') && 'ResizeObserver' in window) {
     let last = 0;
     new ResizeObserver(([entry]) => {
       const wNow = Math.round(entry.contentRect.width);
       if (wNow !== last) { last = wNow; renderShelf(); }
     }).observe($('[data-shelf]'));
   }
-  renderPrints();
-  renderMap();
-  renderShows();
-  renderFilms();
+  if (has('[data-prints]')) renderPrints();
+  if (has('[data-map]')) renderMap();
+  if (has('[data-shows]')) renderShows();
+  if (has('[data-films]')) renderFilms();
   renderFoot();
   // Small screens open on the month: a whole year of days is too fine to read there.
   picks.forEach((b) => { b.setAttribute('aria-checked', String(b.dataset.show === dayShow)); b.tabIndex = b.dataset.show === dayShow ? 0 : -1; });
@@ -757,13 +760,5 @@
       if (!REDUCED && fig.getBoundingClientRect().top > window.innerHeight) fig.classList.add('pre');
       io.observe(fig);
     });
-
-    // The menu marks the section on screen.
-    const links = new Map([...document.querySelectorAll('.sections a')].map((a) => [a.hash.slice(1), a]));
-    const spy = new IntersectionObserver((entries) => entries.forEach((e) => {
-      if (!e.isIntersecting) return;
-      links.forEach((a, id) => (id === e.target.id ? a.setAttribute('aria-current', 'location') : a.removeAttribute('aria-current')));
-    }), { rootMargin: '-45% 0px -50% 0px' });
-    links.forEach((_, id) => document.getElementById(id) && spy.observe(document.getElementById(id)));
   }
 })();

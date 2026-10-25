@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import { local, dayIndex, localIso } from '../src/time.js';
 import { yearSpan, minutesPerDay, clock, inPeriod } from '../src/aggregate.js';
 import { reading } from '../src/koreader.js';
-import { toPlay, mergeHistory, music } from '../src/spotify.js';
+import { toPlay, mergeHistory, music, fromExport, withExport } from '../src/spotify.js';
 import { normEntry, screens } from '../src/bingers.js';
+import { archive, skipSummary } from '../src/archive.js';
 import { compose, fit } from '../src/build.js';
 import { statisticsDb, play } from './fixtures.js';
 
@@ -44,17 +45,70 @@ test('reading: books, status, progress, library and fingerprints', async () => {
   assert.equal(r.readingClocks.week[5][22], 1); // Friday 22h is the busiest this week
 });
 
-test('music: history merges without duplicates and keeps two years', () => {
+test('music: history merges without duplicates, and the views skip older years', () => {
   const a = [play('2026-10-19T12:00:00Z', 'Baby', 'Gal Costa'), play('2026-10-19T12:04:00Z', 'Trem Azul', 'Lô Borges')].map(toPlay);
   const old = toPlay(play('2024-12-31T12:00:00Z', 'Old', 'X'));
-  const h = mergeHistory([old, a[0]], a, span);
-  assert.equal(h.length, 2);
+  const h = mergeHistory([old, a[0]], a);
+  assert.equal(h.length, 3);
   const m = music(h, null, span);
+  assert.equal(m.historySince, old.at);
   assert.equal(m.recentTrack.title, 'Trem Azul');
   assert.equal(m.periods.week.topTracks.length, 2);
   assert.equal(m.periods.year.artists[0].hours, 0.1);
   assert.equal(m.listeningDays[dayIndex('2026-10-19', 2026)], 8);
   assert.equal(m.listeningSince, dayIndex('2026-10-19', 2026));
+});
+
+test('music: the extended history export replaces what the job kept until it was made', () => {
+  const row = (ts, title, ms = 200000, extra = {}) => ({ ts, ms_played: ms, master_metadata_track_name: title, master_metadata_album_artist_name: 'Gal Costa', master_metadata_album_album_name: 'Gal', spotify_track_uri: `spotify:track:Gal Costa-${title}`, ...extra });
+  const rows = [
+    row('2026-10-18T12:00:00Z', 'Baby'),
+    row('2026-10-18T12:05:00Z', 'Skipped', 4000),
+    row('2026-10-18T12:06:00Z', null, 900000, { episode_name: 'A podcast' }),
+    row('2026-10-19T12:00:00Z', 'Divino'),
+  ];
+  const imported = rows.map(fromExport).filter(Boolean);
+  assert.deepEqual(imported.map((p) => [p.id, p.ms, p.artists[0]]), [['Gal Costa-Baby', 200000, 'Gal Costa'], ['Gal Costa-Divino', 200000, 'Gal Costa']]);
+  // The job caught the last exported play too, a fraction of a second later, and one after the export.
+  const kept = [toPlay(play('2026-10-19T12:00:00.420Z', 'Divino', 'Gal Costa')), toPlay(play('2026-10-19T12:04:00Z', 'Trem Azul', 'Lô Borges'))];
+  const h = withExport(kept, imported);
+  assert.deepEqual(h.map((p) => p.title), ['Baby', 'Divino', 'Trem Azul']);
+  // A track first seen in the export borrows its art from a later API play.
+  const m = music(mergeHistory(h, [toPlay(play('2026-10-19T13:00:00Z', 'Baby', 'Gal Costa'))]), null, span);
+  const baby = m.periods.year.topTracks.find((t) => t.title === 'Baby');
+  assert.equal(baby.plays, 2);
+  assert.equal(baby.image, 'https://i.scdn.co/a');
+});
+
+test('archive: orbits, a comet, on this day and first listens across the years', () => {
+  const at = (iso) => Date.parse(iso);
+  const p = (iso, title, artist, min = 4) => ({ at: at(iso), id: `${artist}-${title}`, title, artists: [artist], album: '', ms: min * 60000 });
+  const history = [p('2024-03-01T15:00:00Z', 'Old', 'Gal Costa'), p('2025-10-19T15:00:00Z', 'Baby', 'Gal Costa', 60)];
+  // An obsession: 30 plays in ten days of 2025, and 2 more a year later.
+  for (let k = 0; k < 30; k++) history.push(p(new Date(at('2025-05-01T15:00:00Z') + k * 8 * 3600000).toISOString(), 'Trem Azul', 'Lô Borges'));
+  history.push(p('2026-05-01T15:00:00Z', 'Trem Azul', 'Lô Borges'), p('2026-05-02T15:00:00Z', 'Trem Azul', 'Lô Borges'));
+  history.sort((a, b) => a.at - b.at);
+  const a = archive(history, null, span);
+  assert.deepEqual(a.years, [2024, 2025, 2026]);
+  assert.equal(a.since, '2024-03-01');
+  assert.deepEqual(a.orbits.find((o) => o.name === 'Gal Costa').years, [0.1, 1, 0]);
+  assert.equal(a.comets.length, 1);
+  assert.equal(a.comets[0].burst, 30);
+  assert.equal(a.comets[0].start, '2025-05-01');
+  const day = a.days.days['10-19']['2025'];
+  assert.deepEqual([day[0], a.days.strings[day[1]]], [60, 'Baby']);
+  assert.equal(a.first[0].title, 'Trem Azul');
+  assert.equal(a.first[0].first, '2025-05-01');
+  assert.equal(a.first[0].hour, '12h00'); // São Paulo time
+  assert.equal(archive([], null, span), null);
+});
+
+test('archive: skips are counted from every start in the export', () => {
+  const row = (ts, ms, uri = 'spotify:track:a') => ({ ts, ms_played: ms, master_metadata_track_name: 'A', master_metadata_album_artist_name: 'X', spotify_track_uri: uri });
+  const s = skipSummary([row('2025-01-06T15:00:00Z', 5000), row('2025-01-06T15:10:00Z', 200000), row('2026-01-05T15:00:00Z', 2000), { ts: '2026-01-05T16:00:00Z', ms_played: 1000, episode_name: 'A podcast' }]);
+  assert.deepEqual(s.years, { 2025: [1, 2], 2026: [1, 1] });
+  assert.deepEqual(s.grid[1][12], [2, 3]); // Mondays, 12h in São Paulo
+  assert.equal(s.until, '2026-01-05');
 });
 
 test('screens: hours, shows in progress, films, feelings and queue', () => {

@@ -13,12 +13,12 @@
 <a class="skip" href="#conexoes">Pular para as conexões</a>
 
 <header class="top">
-  <a class="brand" href="#" aria-label="Cosmos de Amélia, início"><img src="img/jupiter.jpg" alt="" width="40" height="40">Amélia</a>
-  <nav class="sections" aria-label="Seções">
-    <a href="#conexoes"><i class="sw sw--all" aria-hidden="true"></i>Conexões</a>
-    <a href="#leitura"><i class="sw sw--read" aria-hidden="true"></i>Leitura</a>
-    <a href="#musica"><i class="sw sw--music" aria-hidden="true"></i>Música</a>
-    <a href="#telas"><i class="sw sw--screen" aria-hidden="true"></i>Telas</a>
+  <a class="brand" href="index.html" aria-label="Cosmos de Amélia, início"><img src="img/jupiter.jpg" alt="" width="40" height="40">Amélia</a>
+  <nav class="sections" aria-label="Páginas">
+    <a href="index.html" aria-current="page">Início</a>
+    <a href="leitura.html"><i class="sw sw--read" aria-hidden="true"></i>Leitura</a>
+    <a href="musica.html"><i class="sw sw--music" aria-hidden="true"></i>Música</a>
+    <a href="telas.html"><i class="sw sw--screen" aria-hidden="true"></i>Telas</a>
   </nav>
   <div class="period" role="radiogroup" aria-label="Período">
     <button role="radio" data-period="week">semana</button>
@@ -46,7 +46,6 @@
       <ul class="now__list" data-now></ul>
     </aside>
   </section>
-
   <section class="stream stream--links" id="conexoes" aria-labelledby="h-links">
     <header class="stream__head"><h2 id="h-links">Conexões</h2><p data-links-line></p></header>
     <div class="stream__grid">
@@ -78,61 +77,6 @@
           <li><i class="sw sw--screen" aria-hidden="true"></i><span data-screen-peak></span></li>
         </ul>
       </figure>
-    </div>
-  </section>
-
-  <section class="stream stream--read" id="leitura" aria-labelledby="h-read">
-    <header class="stream__head"><h2 id="h-read">Leitura</h2><p data-read-line></p></header>
-    <div class="stream__grid">
-      <figure class="fig fig--wide">
-        <figcaption><h3>A estante do ano</h3><p>Cada livro pela capa, a altura pelas páginas. Os abertos ficam à parte, acesos até onde cheguei.</p></figcaption>
-        <div class="shelf" data-shelf></div>
-      </figure>
-      <figure class="fig fig--narrow">
-        <figcaption><h3>A biblioteca por idioma</h3><p data-map-line></p></figcaption>
-        <div class="map" data-map></div>
-        <ul class="key" data-map-key></ul>
-      </figure>
-      <figure class="fig fig--full">
-        <figcaption><h3>Como cada livro foi lido, e ao som de quê</h3><p>Uma faixa por livro, um traço a cada dez páginas: mais claro onde demorei mais, e a marca embaixo é releitura. A barra azul é a trilha: o que tocou enquanto eu lia, e o resto em silêncio.</p></figcaption>
-        <ol class="prints" data-prints></ol>
-        <button class="more" data-prints-more hidden></button>
-      </figure>
-    </div>
-  </section>
-
-  <section class="stream stream--music" id="musica" aria-labelledby="h-music">
-    <header class="stream__head"><h2 id="h-music">Música</h2><p data-music-line></p></header>
-    <div class="stream__grid">
-      <figure class="fig fig--narrow">
-        <figcaption><h3>Em repetição</h3><p>As faixas que mais toquei no período.</p></figcaption>
-        <ol class="tracks" data-tracks></ol>
-      </figure>
-      <figure class="fig fig--wide">
-        <figcaption><h3>Com quem passei o tempo</h3><p>Horas com cada artista no período.</p></figcaption>
-        <ol class="artists" data-artists></ol>
-      </figure>
-    </div>
-  </section>
-
-  <section class="stream stream--screen" id="telas" aria-labelledby="h-screen">
-    <header class="stream__head"><h2 id="h-screen">Telas</h2><p data-screen-line></p></header>
-    <div class="stream__grid">
-      <figure class="fig fig--wide">
-        <figcaption><h3>Séries em andamento</h3><p>Um traço por episódio da temporada; os acesos já vi.</p></figcaption>
-        <ul class="shows" data-shows></ul>
-      </figure>
-      <div class="fig-stack">
-        <figure class="fig">
-          <figcaption><h3>Como me senti</h3><p>O que marquei depois de cada episódio e filme no período.</p></figcaption>
-          <ul class="feel" data-feelings></ul>
-        </figure>
-        <figure class="fig">
-          <figcaption><h3>Filmes do ano e a fila</h3></figcaption>
-          <ul class="films" data-films></ul>
-          <ul class="queue" data-queue></ul>
-        </figure>
-      </div>
     </div>
   </section>
 </main>

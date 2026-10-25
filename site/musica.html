@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#08080C">
+<title>Música · Cosmos</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip" href="#musica">Pular para a música</a>
+
+<header class="top">
+  <a class="brand" href="index.html" aria-label="Cosmos de Amélia, início"><img src="img/jupiter.jpg" alt="" width="40" height="40">Amélia</a>
+  <nav class="sections" aria-label="Páginas">
+    <a href="index.html">Início</a>
+    <a href="leitura.html"><i class="sw sw--read" aria-hidden="true"></i>Leitura</a>
+    <a href="musica.html" aria-current="page"><i class="sw sw--music" aria-hidden="true"></i>Música</a>
+    <a href="telas.html"><i class="sw sw--screen" aria-hidden="true"></i>Telas</a>
+  </nav>
+  <div class="period" role="radiogroup" aria-label="Período">
+    <button role="radio" data-period="week">semana</button>
+    <button role="radio" data-period="month">mês</button>
+    <button role="radio" data-period="year">ano</button>
+  </div>
+</header>
+
+<main>
+  <section class="stream stream--music" id="musica" aria-labelledby="h-music">
+    <header class="stream__head"><h1 id="h-music">Música</h1><p data-music-line></p></header>
+    <div class="stream__grid">
+      <figure class="fig fig--narrow">
+        <figcaption><h3>Em repetição</h3><p>As faixas que mais toquei no período.</p></figcaption>
+        <ol class="tracks" data-tracks></ol>
+      </figure>
+      <figure class="fig fig--wide">
+        <figcaption><h3>Com quem passei o tempo</h3><p>Horas com cada artista no período.</p></figcaption>
+        <ol class="artists" data-artists></ol>
+      </figure>
+    </div>
+  </section>
+
+  <section class="stream stream--music stream--archive" id="dez-anos" aria-labelledby="h-archive">
+    <header class="stream__head"><h2 id="h-archive">Dez anos</h2><p data-archive-line></p></header>
+    <div class="stream__grid" data-archive>
+      <figure class="fig fig--full">
+        <figcaption><h3>Órbitas</h3><p>Cada artista é um cinturão, da grossura do tempo que passei com ele em cada ano: quem chegou, quem ficou, quem passou.</p></figcaption>
+        <div class="wide"><svg class="orbits" data-orbits role="img"></svg></div>
+        <p class="readout" data-orbits-readout aria-live="polite"></p>
+      </figure>
+      <figure class="fig fig--full">
+        <figcaption><h3>Cometas</h3><p>Músicas que viraram obsessão: quase todas as vezes que tocaram cabem em três semanas. O núcleo são essas semanas; a cauda, os dias em que voltaram.</p></figcaption>
+        <div class="wide"><svg class="comets" data-comets role="img"></svg></div>
+      </figure>
+      <figure class="fig fig--wide">
+        <figcaption><h3>Inquietação</h3><p data-skips-line></p></figcaption>
+        <div class="wide"><div class="restless" data-restless role="img"></div></div>
+        <ul class="key" data-restless-key></ul>
+        <p class="readout" data-restless-readout aria-live="polite"></p>
+      </figure>
+      <figure class="fig fig--narrow">
+        <figcaption><h3>Ano a ano</h3><p>Quanto do que comecei a ouvir eu cortei.</p></figcaption>
+        <svg class="patience" data-patience role="img"></svg>
+      </figure>
+      <figure class="fig fig--half">
+        <figcaption><h3>As que eu mais pulo</h3></figcaption>
+        <ol class="ranked" data-skipped></ol>
+      </figure>
+      <figure class="fig fig--half">
+        <figcaption><h3>As que eu nunca corto</h3></figcaption>
+        <ol class="ranked" data-loyal></ol>
+      </figure>
+      <figure class="fig fig--full">
+        <figcaption><h3>Neste dia</h3><p>O que tocou nesta mesma data em cada ano: a barra é a música do dia, ao lado a faixa que mais tocou.</p></figcaption>
+        <div class="onday__bar">
+          <button type="button" class="round" data-day-step="-1" aria-label="Dia anterior">‹</button>
+          <output data-onday-label aria-live="polite"></output>
+          <button type="button" class="round" data-day-step="1" aria-label="Próximo dia">›</button>
+          <button type="button" class="more" data-day-today>hoje</button>
+        </div>
+        <div class="onday" data-onday></div>
+      </figure>
+      <figure class="fig fig--full">
+        <figcaption><h3>Primeira escuta</h3><p>As 30 faixas que mais toquei, no dia em que apareceram. A altura é quantas vezes tocaram; o tamanho, as horas.</p></figcaption>
+        <div class="wide"><svg class="firsts" data-firsts role="img"></svg></div>
+        <p class="readout" data-firsts-readout aria-live="polite"></p>
+        <p class="fine" data-firsts-note></p>
+      </figure>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <p data-updated></p>
+  <p data-sources></p>
+  <p class="credits">Júpiter em ultravioleta, telescópio espacial Hubble: NASA, ESA.</p>
+</footer>
+
+<script src="data/cosmos.js"></script>
+<script src="app.js"></script>
+<script src="data/archive.js"></script>
+<script src="archive.js"></script>
+</body>
+</html>

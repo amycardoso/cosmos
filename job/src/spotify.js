@@ -41,24 +41,49 @@ export function toPlay(item) {
 
 const smallest = (images) => (images && images.length ? [...images].sort((a, b) => (a.width || 0) - (b.width || 0)).find((i) => (i.width || 0) >= 64)?.url || images[0].url : null);
 
-// Merge new plays into the stored history, without duplicates, keeping this year and last.
-export function mergeHistory(history, plays, span) {
+// Merge new plays into the stored history, without duplicates. Nothing is dropped: since
+// the extended history import, it reaches back to her first play.
+export function mergeHistory(history, plays) {
   const seen = new Set(history.map((p) => p.at));
-  const merged = history.concat(plays.filter((p) => !seen.has(p.at))).sort((a, b) => a.at - b.at);
-  const from = Date.UTC(span.year - 1, 0, 1);
-  return merged.filter((p) => p.at >= from);
+  return history.concat(plays.filter((p) => !seen.has(p.at))).sort((a, b) => a.at - b.at);
 }
 
-export async function fetchSpotify(env, history, span) {
+// One row of Spotify's Extended Streaming History export as a stored play, or null for
+// podcasts, audiobooks and anything under 30 seconds (Spotify's own bar for a stream,
+// and roughly what recently-played reports). The export has no album art, only the
+// album artist, and counts the time actually played rather than the track's length.
+export function fromExport(row) {
+  if (!row.master_metadata_track_name || !row.spotify_track_uri || row.ms_played < 30000) return null;
+  return {
+    at: Date.parse(row.ts),
+    id: row.spotify_track_uri.split(':').pop(),
+    title: row.master_metadata_track_name,
+    artists: [row.master_metadata_album_artist_name || ''],
+    album: row.master_metadata_album_album_name || '',
+    ms: row.ms_played,
+  };
+}
+
+// The export is the full record up to the moment it was made, so it replaces whatever
+// the job kept until then; only plays the job caught afterwards are kept on top. Its
+// timestamps are whole seconds while the API's carry milliseconds, hence the margin.
+export function withExport(history, imported) {
+  const last = imported.reduce((m, p) => Math.max(m, p.at), 0);
+  return imported.concat(history.filter((p) => p.at > last + 1000)).sort((a, b) => a.at - b.at);
+}
+
+export async function fetchSpotify(env, history) {
   const access = await token(env);
   const last = history.length ? history[history.length - 1].at : 0;
   const recent = await get(`/me/player/recently-played?limit=50${last ? `&after=${last}` : ''}`, access);
   const plays = (recent?.items || []).filter((i) => i.track).map(toPlay);
   const now = await get('/me/player/currently-playing', access).catch(() => null);
-  return { history: mergeHistory(history, plays, span), nowPlaying: now?.item && now.is_playing ? now.item : null };
+  return { history: mergeHistory(history, plays), nowPlaying: now?.item && now.is_playing ? now.item : null };
 }
 
-export function music(history, nowPlaying, span) {
+export function music(all, nowPlaying, span) {
+  // The views only look back as far as last year; older plays wait in the store.
+  const history = all.filter((p) => p.at >= Date.UTC(span.year - 1, 0, 1));
   const sessions = history.map((p) => ({ start: p.at, minutes: p.ms / 60000, play: p }));
   const thisYear = history.filter((p) => inPeriod(p.at, span, null));
   const periodPlays = (n) => history.filter((p) => inPeriod(p.at, span, n));
@@ -73,12 +98,12 @@ export function music(history, nowPlaying, span) {
   return {
     listeningDays: minutesPerDay(sessions, span),
     listeningClocks: clocks(sessions, span),
-    // The history starts on the first day the job ran; before that there is nothing to count.
+    // Before the first play there is nothing to count (the job's first run, before the import).
     listeningSince: firstDay,
     recentTrack: recent,
     // For the connections only: [ended at, ms, first artist]. The site never receives it.
     timeline: thisYear.map((p) => [p.at, p.ms, p.artists[0]]),
-    historySince: history.length ? history[0].at : null,
+    historySince: all.length ? all[0].at : null,
     periods: {
       year: lists(thisYear),
       month: lists(periodPlays(PERIOD_DAYS.month)),
@@ -92,8 +117,9 @@ function lists(plays) {
   const artists = new Map();
   for (const p of plays) {
     const key = p.id || p.title;
-    const t = tracks.get(key) || { title: p.title, artist: p.artists[0], image: p.image, plays: 0 };
+    const t = tracks.get(key) || { title: p.title, artist: p.artists[0], image: null, plays: 0 };
     t.plays++;
+    t.image ||= p.image || null; // imported plays have no art; a later API play may
     tracks.set(key, t);
     // Time goes to the first credited artist, as Spotify's own summaries do.
     const a = p.artists[0];
