@@ -150,11 +150,12 @@ Small, soft corners on data marks: 2px on grid cells, 3px on tiles and map squar
 
 ## Motion
 
-Motion carries information and happens once; nothing loops except today's ring. Every effect uses cubic-bezier(.16,1,.3,1) and is skipped under reduced motion.
+Motion carries information and happens once; only today's ring and the planet keep moving. Every effect uses cubic-bezier(.16,1,.3,1) and is skipped under reduced motion.
 
 - **Belts:** on load and on a period change, cells fill from 15% to full opacity left to right (560ms, up to 520ms of stagger), each belt 80ms behind the one above.
 - **Totals:** the lede's three totals count to their new value (900ms) instead of jumping.
 - **Today:** the pale ring around today's spot breathes to 25% opacity every 3.2s.
+- **Planet:** the UV Jupiter in the "now" aside turns once a minute, features crossing the disc left to right. Hubble saw one face, so the photo is unrolled into a map of that face (out to 70 degrees) and its mirror for the far side, the limb darkening taken out and laid back on as it is drawn. It pauses off screen and stays a still photo under reduced motion.
 - **Figures:** a figure below the fold rises 10px and fades in once when it reaches the screen. Figures already in view never hide.
 - **Hours grid:** hours light up from 0h to 23h (22ms apart).
 - **Shelf:** books rise onto the shelf the first time it is seen.
