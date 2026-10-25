@@ -13,6 +13,7 @@ import { fetchBingers, screens } from './bingers.js';
 import { covers, coverKey } from './covers.js';
 import { withSkoob } from './skoob.js';
 import { connections } from './connections.js';
+import { archive } from './archive.js';
 
 const env = process.env;
 const has = (...keys) => keys.every((k) => env[k]);
@@ -98,7 +99,7 @@ export async function main() {
   const listen = await source('music', has('SPOTIFY_CLIENT_ID', 'SPOTIFY_CLIENT_SECRET', 'SPOTIFY_REFRESH_TOKEN'), async () => {
     const { history, nowPlaying } = await fetchSpotify(env, (await state.get('spotify-history')) || []);
     await state.put('spotify-history', history);
-    return music(history, nowPlaying, span);
+    return { ...music(history, nowPlaying, span), archive: archive(history, await state.get('spotify-skips'), span) };
   }, state, span);
 
   const watch = await source('screens', has('BINGERS_TOKEN'), async () => {
@@ -131,6 +132,8 @@ export async function main() {
   // The page shows the copies served from the site, never a catalogue's address.
   for (const b of data.books) delete b.coverUrl;
   await writeFile('dist/data/cosmos.js', `window.COSMOS_DATA = ${JSON.stringify(data)};\n`);
+  // The long view of the music page, in its own file so only that page loads it.
+  await writeFile('dist/data/archive.js', `window.COSMOS_ARCHIVE = ${JSON.stringify(listen.data?.archive || null)};\n`);
   console.log('dist/ ready');
 }
 

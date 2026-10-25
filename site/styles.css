@@ -92,11 +92,11 @@ i.sw{display:inline-block;width:14px;height:6px;border-radius:3px;margin-right:8
 .stream{max-width:1440px;margin:0 auto;padding:56px var(--gutter) 64px;border-bottom:1px solid var(--line)}
 .stream--links{--c:var(--zone)}.stream--read{--c:var(--read)}.stream--music{--c:var(--music)}.stream--screen{--c:var(--screen)}
 .stream__head{display:flex;align-items:baseline;gap:20px;flex-wrap:wrap;margin-bottom:36px}
-.stream__head h2{font-size:clamp(32px,3.4vw,44px);color:var(--c);letter-spacing:-.035em}
+.stream__head :is(h1,h2){font-size:clamp(32px,3.4vw,44px);color:var(--c);letter-spacing:-.035em}
 .stream__head p{color:var(--haze);font-size:17px}
 .stream__grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:48px 56px}
 .fig{grid-column:span 6;display:flex;flex-direction:column;gap:18px;min-width:0}
-.fig--wide{grid-column:span 7}.fig--narrow{grid-column:span 5}.fig--full{grid-column:1/-1}
+.fig--wide{grid-column:span 7}.fig--narrow{grid-column:span 5}.fig--half{grid-column:span 6}.fig--full{grid-column:1/-1}
 .fig-stack{grid-column:8/-1;grid-row:1/span 2;display:flex;flex-direction:column;gap:48px;min-width:0}
 .fig figcaption h3{font-size:19px;letter-spacing:-.01em}
 .fig figcaption p{margin-top:4px;color:var(--haze);font-size:14px;max-width:56ch}
@@ -224,7 +224,7 @@ i.sw{display:inline-block;width:14px;height:6px;border-radius:3px;margin-right:8
   .now{display:grid;grid-template-columns:140px 1fr;gap:24px;align-items:center}
   .now__planet{max-width:140px}
   .stream__grid{grid-template-columns:minmax(0,1fr)}
-  .fig,.fig--wide,.fig--narrow,.fig-stack{grid-column:1/-1;grid-row:auto}
+  .fig,.fig--wide,.fig--narrow,.fig--half,.fig-stack{grid-column:1/-1;grid-row:auto}
 }
 @media (max-width:640px){
   .top{flex-wrap:wrap;gap:12px 20px;padding-top:12px;padding-bottom:12px}
@@ -244,4 +244,58 @@ i.sw{display:inline-block;width:14px;height:6px;border-radius:3px;margin-right:8
   .shelf__row{gap:8px}
   .book__none{font-size:10px;padding:5px}
 }
+/* Ten years of music: the long view under the music page */
+.stream--archive{border-top:1px solid var(--line)}
+.wide{overflow-x:auto;scrollbar-color:#2A2838 var(--space)}
+.wide>svg{min-width:680px}
+[data-archive] svg{display:block;width:100%;height:auto;overflow:visible}
+[data-archive] svg text{font-family:var(--text);fill:var(--haze);font-size:12.5px}
+[data-archive] svg .ax{fill:var(--dim);font-size:12px}
+[data-archive] svg .name{fill:var(--zone);font-size:14px;font-weight:600}
+[data-archive] svg .grid{stroke:rgba(237,241,250,.06)}
+.readout{min-height:22px;font-size:14px;color:var(--haze)}
+.readout b{color:var(--zone);font-weight:600}
+.fine{font-size:13px;color:var(--dim);max-width:70ch}
+.orbits .belt{cursor:pointer;outline:none}
+.orbits .belt path{fill:var(--music);fill-opacity:.8;transition:fill-opacity .2s}
+.orbits .belt.dim path{fill-opacity:.22}
+.orbits .belt:focus-visible text.name{text-decoration:underline}
+.comets .tail{fill:var(--music);fill-opacity:.45}
+.comets .head{fill:var(--zone);animation:breathe 3.2s ease-in-out infinite}
+.firsts .star{cursor:pointer;outline:none}
+.firsts .star circle+circle{fill:var(--music);fill-opacity:.85}
+.firsts .star:hover circle+circle,.firsts .star:focus-visible circle+circle{fill:var(--zone)}
+.firsts .star text{fill:var(--zone)}
+.restless{display:grid;grid-template-columns:32px repeat(24,minmax(0,1fr));gap:2px;font-size:11px;color:var(--dim);min-width:520px}
+.restless span{align-self:center}
+.restless .hr{text-align:left}
+.restless i,.key i.r0{aspect-ratio:1;border-radius:2px;background:var(--deep)}
+.restless i:hover{outline:1.5px solid var(--zone)}
+.r1{background:color-mix(in oklab,var(--pole) 25%,var(--deep))!important}
+.r2{background:color-mix(in oklab,var(--pole) 48%,var(--deep))!important}
+.r3{background:color-mix(in oklab,var(--pole) 74%,var(--deep))!important}
+.r4{background:var(--pole)!important}
+[data-restless-key] i{margin-right:2px}
+[data-restless-key] li i:last-child{margin-right:6px}
+.patience .bar{fill:var(--pole)}.patience .bar.part{fill-opacity:.5}
+.ranked{display:grid;gap:10px}
+.ranked li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:8px;font-size:15px}
+.ranked span{min-width:0}
+.ranked small{display:block;color:var(--dim);font-size:13px}
+.ranked em{font-style:normal;color:var(--haze);font-size:14px;white-space:nowrap}
+.onday__bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.onday__bar output{font:700 22px var(--display);letter-spacing:-.02em;min-width:9ch;text-align:center}
+.onday__bar .more{align-self:center}
+.round{background:none;border:1px solid var(--line);color:var(--zone);border-radius:999px;width:34px;height:34px;cursor:pointer;font-size:18px;line-height:1}
+.round:hover{border-color:var(--haze)}
+.onday{display:grid;gap:6px}
+.onday .yr{display:grid;grid-template-columns:44px minmax(0,160px) minmax(0,1fr);gap:16px;align-items:center;font-size:15px}
+.onday .yr b{font-weight:600;color:var(--dim)}
+.onday .bar{height:10px;background:var(--deep);border-radius:4px;overflow:hidden}
+.onday .bar i{display:block;height:100%;background:var(--music);border-radius:4px}
+.onday .t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.onday .t small{color:var(--dim);margin-left:8px;font-size:13px}
+.onday .yr--empty .t{color:var(--dim)}
+@media (max-width:560px){.onday .yr{grid-template-columns:38px 64px minmax(0,1fr);gap:10px;font-size:14px}.onday .t small{display:block;margin:0}.onday .t{white-space:normal}}
+@media (prefers-reduced-motion:reduce){.comets .head{animation:none}}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.today-ring{animation:none}.fig{transition:none}}

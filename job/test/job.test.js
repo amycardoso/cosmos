@@ -5,6 +5,7 @@ import { yearSpan, minutesPerDay, clock, inPeriod } from '../src/aggregate.js';
 import { reading } from '../src/koreader.js';
 import { toPlay, mergeHistory, music, fromExport, withExport } from '../src/spotify.js';
 import { normEntry, screens } from '../src/bingers.js';
+import { archive, skipSummary } from '../src/archive.js';
 import { compose, fit } from '../src/build.js';
 import { statisticsDb, play } from './fixtures.js';
 
@@ -77,6 +78,37 @@ test('music: the extended history export replaces what the job kept until it was
   const baby = m.periods.year.topTracks.find((t) => t.title === 'Baby');
   assert.equal(baby.plays, 2);
   assert.equal(baby.image, 'https://i.scdn.co/a');
+});
+
+test('archive: orbits, a comet, on this day and first listens across the years', () => {
+  const at = (iso) => Date.parse(iso);
+  const p = (iso, title, artist, min = 4) => ({ at: at(iso), id: `${artist}-${title}`, title, artists: [artist], album: '', ms: min * 60000 });
+  const history = [p('2024-03-01T15:00:00Z', 'Old', 'Gal Costa'), p('2025-10-19T15:00:00Z', 'Baby', 'Gal Costa', 60)];
+  // An obsession: 30 plays in ten days of 2025, and 2 more a year later.
+  for (let k = 0; k < 30; k++) history.push(p(new Date(at('2025-05-01T15:00:00Z') + k * 8 * 3600000).toISOString(), 'Trem Azul', 'Lô Borges'));
+  history.push(p('2026-05-01T15:00:00Z', 'Trem Azul', 'Lô Borges'), p('2026-05-02T15:00:00Z', 'Trem Azul', 'Lô Borges'));
+  history.sort((a, b) => a.at - b.at);
+  const a = archive(history, null, span);
+  assert.deepEqual(a.years, [2024, 2025, 2026]);
+  assert.equal(a.since, '2024-03-01');
+  assert.deepEqual(a.orbits.find((o) => o.name === 'Gal Costa').years, [0.1, 1, 0]);
+  assert.equal(a.comets.length, 1);
+  assert.equal(a.comets[0].burst, 30);
+  assert.equal(a.comets[0].start, '2025-05-01');
+  const day = a.days.days['10-19']['2025'];
+  assert.deepEqual([day[0], a.days.strings[day[1]]], [60, 'Baby']);
+  assert.equal(a.first[0].title, 'Trem Azul');
+  assert.equal(a.first[0].first, '2025-05-01');
+  assert.equal(a.first[0].hour, '12h00'); // São Paulo time
+  assert.equal(archive([], null, span), null);
+});
+
+test('archive: skips are counted from every start in the export', () => {
+  const row = (ts, ms, uri = 'spotify:track:a') => ({ ts, ms_played: ms, master_metadata_track_name: 'A', master_metadata_album_artist_name: 'X', spotify_track_uri: uri });
+  const s = skipSummary([row('2025-01-06T15:00:00Z', 5000), row('2025-01-06T15:10:00Z', 200000), row('2026-01-05T15:00:00Z', 2000), { ts: '2026-01-05T16:00:00Z', ms_played: 1000, episode_name: 'A podcast' }]);
+  assert.deepEqual(s.years, { 2025: [1, 2], 2026: [1, 1] });
+  assert.deepEqual(s.grid[1][12], [2, 3]); // Mondays, 12h in São Paulo
+  assert.equal(s.until, '2026-01-05');
 });
 
 test('screens: hours, shows in progress, films, feelings and queue', () => {
