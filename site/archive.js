@@ -89,6 +89,98 @@
     svg.addEventListener('focusout', (e) => !svg.contains(e.relatedTarget) && clear());
   })();
 
+  // ---------- Genres ----------
+  // Each family is a belt, light zones and dark belts in turn, from the music cyan to the
+  // planet's deep blue spot; the text on each takes the opposite side.
+  (function genres() {
+    const figs = document.querySelectorAll('[data-genres-fig]');
+    const G = A.genres;
+    if (!G || !G.families.length) { figs.forEach((f) => (f.hidden = true)); return; }
+    const fams = G.families;
+    const BELTS = ['#BFE6F7', '#3948CF', '#84CDEE', '#5A6BE0', '#DDEFF8', '#2B379E', '#9FD8F0', '#7886E6', '#5FB4DB', '#232C80', '#C9D3F5'];
+    const color = (i) => BELTS[i % BELTS.length];
+    const ink = (i) => (i % 2 ? '#EDF1FA' : '#08080C');
+    const svgs = [$('[data-atmosphere]'), $('[data-genre-clock]')];
+    const parts = [];
+    const focus = (i) => {
+      svgs.forEach((svg) => svg.classList.toggle('dimmed', i != null));
+      parts.forEach((p) => p.el.classList.toggle('on', p.i === i));
+    };
+    const share = (key, c) => { const t = fams.reduce((a, f) => a + f[key][c], 0); return (i) => (t ? fams[i][key][c] / t : 0); };
+
+    // The atmosphere of each year: shares stacked and smoothed between years.
+    (function atmosphere() {
+      const svg = svgs[0];
+      const W = 1000, H = 420, top = 24;
+      svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+      const xs = Y.map((_, c) => (c * W) / Math.max(1, Y.length - 1));
+      const shares = Y.map((_, c) => share('years', c));
+      let base = Y.map(() => top);
+      const curve = (p) => p.map(([x, y], k) => (k ? `C${(p[k - 1][0] + x) / 2},${p[k - 1][1]} ${(p[k - 1][0] + x) / 2},${y} ${x},${y}` : `M${x},${y}`)).join('');
+      const labels = [];
+      fams.forEach((f, i) => {
+        const upper = base, lower = base.map((b, c) => b + shares[c](i) * (H - top));
+        base = lower;
+        const el2 = el('svg:path', { d: curve(xs.map((x, c) => [x, upper[c]])) + curve(xs.map((x, c) => [x, lower[c]]).reverse()).replace(/^M/, 'L') + 'Z', fill: color(i), class: 'part' });
+        el2.addEventListener('pointerenter', () => {
+          focus(i);
+          $('[data-atmosphere-readout]').innerHTML = `<b>${esc(f.name)}</b> · ${Y.map((y, c) => `${y} ${pct(shares[c](i))}`).join(' · ')}`;
+        });
+        parts.push({ el: el2, i });
+        svg.append(el2);
+        // The name sits inside the belt at its widest year, when it fits.
+        const h = lower.map((b, c) => b - upper[c]);
+        const c = h.indexOf(Math.max(...h.slice(1, -1)));
+        if (h[c] >= 16) labels.push(el('svg:text', { x: xs[c], y: (upper[c] + lower[c]) / 2 + 4, 'text-anchor': 'middle', class: 'belt-name', style: `fill:${ink(i)}`, text: f.name }));
+      });
+      svg.append(...labels);
+      Y.forEach((y, c) => svg.append(el('svg:text', { x: xs[c], y: 14, class: 'ax', 'text-anchor': c === 0 ? 'start' : c === Y.length - 1 ? 'end' : 'middle', text: y })));
+      svg.setAttribute('aria-label', fams.map((f) => `${f.name}: ${num(f.hours)} h`).join(', '));
+      const rest = 'Passe por uma faixa para ver a fatia de cada ano.';
+      $('[data-atmosphere-readout]').textContent = rest;
+      svg.addEventListener('pointerleave', () => { focus(null); $('[data-atmosphere-readout]').textContent = rest; });
+    })();
+
+    // The genre clock: one stacked column per hour of the day.
+    (function clock() {
+      const svg = svgs[1];
+      const W = 1000, H = 290, top = 4, bottom = 262, gap = 4, cw = (W - gap * 23) / 24;
+      svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+      const readout = $('[data-genre-clock-readout]');
+      for (let h = 0; h < 24; h++) {
+        const sh = share('clock', h), x = h * (cw + gap);
+        let y = top;
+        fams.forEach((f, i) => {
+          const hh = sh(i) * (bottom - top);
+          const r = el('svg:rect', { x, y, width: cw, height: Math.max(0, hh - 1), rx: 1.5, fill: color(i), class: 'part' });
+          r.addEventListener('pointerenter', () => {
+            focus(i);
+            const lead = fams.map((g, k) => [g.name, sh(k)]).sort((a, b) => b[1] - a[1]).slice(0, 3);
+            readout.innerHTML = `<b>${h}h</b> · ${lead.map(([n, v]) => `${esc(n)} ${pct(v)}`).join(' · ')}`;
+          });
+          parts.push({ el: r, i });
+          svg.append(r);
+          y += hh;
+        });
+        if (h % 3 === 0) svg.append(el('svg:text', { x: x + cw / 2, y: H - 6, class: 'ax', 'text-anchor': 'middle', text: `${h}h` }));
+      }
+      svg.setAttribute('aria-label', 'A fatia de cada gênero em cada hora do dia.');
+      const rest = 'Passe por uma hora para ver o que toca nela.';
+      readout.textContent = rest;
+      svg.addEventListener('pointerleave', () => { focus(null); readout.textContent = rest; });
+    })();
+
+    const key = $('[data-genre-key]');
+    fams.forEach((f, i) => {
+      const li = el('li', { html: `<i style="background:${color(i)}"></i><span>${esc(f.name)}<small>${f.artists.map(esc).join(', ')}</small></span><em>${num(f.hours)} h</em>` });
+      li.addEventListener('pointerenter', () => focus(i));
+      li.addEventListener('pointerleave', () => focus(null));
+      key.append(li);
+    });
+    const covered = G.known / Math.max(1, A.totals.hours);
+    $('[data-genres-note]').textContent = `Gêneros do MusicBrainz, marcados pela comunidade em cada artista. Já sei o gênero de ${pct(covered)} das horas; a cada deploy mais artistas entram.`;
+  })();
+
   // ---------- Comets ----------
   (function comets() {
     const svg = $('[data-comets]');

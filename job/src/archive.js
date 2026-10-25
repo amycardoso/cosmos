@@ -6,7 +6,8 @@ import { local } from './time.js';
 const DAY = 86400000;
 const BURST = 21 * DAY; // a comet's head: the busiest three weeks of a track
 
-export function archive(history, skips, span) {
+// genreOf(artist) gives the artist's genre family, or null while it is still unknown.
+export function archive(history, skips, span, genreOf = () => null) {
   if (!history.length) return null;
   // Local dates and hours are worked out once; Intl is the slow part.
   const plays = history.map((p) => ({ ...p, l: local(p.at) }));
@@ -89,6 +90,29 @@ export function archive(history, skips, span) {
       first: t.plays[0].l.date, hour: `${t.plays[0].l.hour}h${String(t.plays[0].l.minute).padStart(2, '0')}`,
     }));
 
+  // Genres: the hours of each family, year by year and hour by hour, from the artists whose
+  // genre is known so far; the rest is counted as not yet known.
+  const fam = new Map();
+  let known = 0;
+  for (const p of plays) {
+    const name = genreOf(p.artists[0]);
+    if (!name) continue;
+    known += p.ms;
+    const f = fam.get(name) || { name, ms: 0, years: years.map(() => 0), hours: new Array(24).fill(0), artists: new Map() };
+    f.ms += p.ms;
+    f.years[yi(p)] += p.ms;
+    f.hours[p.l.hour] += p.ms;
+    f.artists.set(p.artists[0], (f.artists.get(p.artists[0]) || 0) + p.ms);
+    fam.set(name, f);
+  }
+  const genres = fam.size ? {
+    known: Math.round(known / 3600000),
+    families: [...fam.values()].sort((a, b) => b.ms - a.ms).map((f) => ({
+      name: f.name, hours: Math.round(f.ms / 3600000), years: f.years.map(hours), clock: f.hours.map(hours),
+      artists: [...f.artists].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([a]) => a),
+    })),
+  } : null;
+
   return {
     since: plays[0].l.date,
     years,
@@ -98,6 +122,7 @@ export function archive(history, skips, span) {
     comets,
     days: { strings, days },
     first,
+    genres,
     skips: skips || null,
   };
 }

@@ -14,6 +14,7 @@ import { covers, coverKey } from './covers.js';
 import { withSkoob } from './skoob.js';
 import { connections } from './connections.js';
 import { archive } from './archive.js';
+import { fetchGenres, family } from './genres.js';
 
 const env = process.env;
 const has = (...keys) => keys.every((k) => env[k]);
@@ -86,6 +87,23 @@ export function compose({ read, listen, watch }, span, now) {
   };
 }
 
+// Genres are a nicety: when MusicBrainz fails, the music page keeps the ones already known.
+async function artistGenres(history, state) {
+  const cache = (await state.get('artist-genres')) || {};
+  const ms = new Map();
+  for (const p of history) ms.set(p.artists[0], (ms.get(p.artists[0]) || 0) + p.ms);
+  const artists = [...ms].sort((a, b) => b[1] - a[1]).map(([a]) => a);
+  try {
+    const found = await fetchGenres(artists, cache, Date.now());
+    await state.put('artist-genres', found.cache);
+    console.log(`genres: ${found.looked} looked up, ${found.left} to go`);
+    return found.cache;
+  } catch (err) {
+    console.log(`genres: failed (${err.message})`);
+    return cache;
+  }
+}
+
 export async function main() {
   const now = Date.now();
   const span = yearSpan(now);
@@ -99,7 +117,9 @@ export async function main() {
   const listen = await source('music', has('SPOTIFY_CLIENT_ID', 'SPOTIFY_CLIENT_SECRET', 'SPOTIFY_REFRESH_TOKEN'), async () => {
     const { history, nowPlaying } = await fetchSpotify(env, (await state.get('spotify-history')) || []);
     await state.put('spotify-history', history);
-    return { ...music(history, nowPlaying, span), archive: archive(history, await state.get('spotify-skips'), span) };
+    const known = await artistGenres(history, state);
+    const genreOf = (a) => family(known[a]?.g);
+    return { ...music(history, nowPlaying, span), archive: archive(history, await state.get('spotify-skips'), span, genreOf) };
   }, state, span);
 
   const watch = await source('screens', has('BINGERS_TOKEN'), async () => {
