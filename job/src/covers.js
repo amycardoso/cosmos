@@ -29,25 +29,28 @@ export function cleanAuthor(a) {
   return (m ? `${m[2]} ${m[1]}` : first).replace(/\s+/g, ' ').trim();
 }
 
-// Tries the catalogues from the most to the least precise query. `failed` says a
-// catalogue errored (often Google's rate limit on shared runners), so a miss isn't final.
+// Tries the catalogues from the most to the least precise query, ending with Open Library's
+// free-text search, which also matches a book under its original title. `failed` says Open
+// Library errored, so a miss isn't final; Google's daily quota runs out on shared runners
+// too often for its errors to count.
 export async function lookup(b) {
   const author = cleanAuthor(b.author);
   const titles = [...new Set([cleanTitle(b.title), mainTitle(b.title)].filter(Boolean))];
   let failed = false;
-  const ask = (url) => json(url).catch(() => ((failed = true), null));
+  const ask = (url, counts) => json(url).catch(() => ((failed ||= counts), null));
   const tries = [];
   for (const title of titles) {
     if (author) tries.push(['ol', { title, author }]);
     tries.push(['ol', { title }], ['gb', `intitle:${title}${author ? ` inauthor:${author}` : ''}`]);
   }
+  for (const title of titles) if (author) tries.push(['ol', { q: `${title} ${author}` }]);
   for (const [where, q] of tries) {
     if (where === 'ol') {
-      const ol = await ask(`https://openlibrary.org/search.json?${new URLSearchParams({ ...q, limit: '1', fields: 'cover_i' })}`);
+      const ol = await ask(`https://openlibrary.org/search.json?${new URLSearchParams({ ...q, limit: '1', fields: 'cover_i' })}`, true);
       const id = ol?.docs?.[0]?.cover_i;
       if (id) return { url: `https://covers.openlibrary.org/b/id/${id}-L.jpg`, failed: false };
     } else {
-      const gb = await ask(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=1&printType=books`);
+      const gb = await ask(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=1&printType=books`, false);
       const thumb = gb?.items?.[0]?.volumeInfo?.imageLinks?.thumbnail;
       if (thumb) return { url: thumb.replace(/^http:/, 'https:').replace('&edge=curl', ''), failed: false };
     }
@@ -55,7 +58,8 @@ export async function lookup(b) {
   return { url: null, failed };
 }
 
-// books: [{ title, author }]. cache: { key: { url, at } } from the last run.
+// books: [{ title, author, coverUrl? }]; a coverUrl (Skoob's edition) skips the lookup.
+// cache: { key: { url, at } } from the last run.
 // Returns the new cache and the downloaded images, { key: { file, bytes } }.
 export async function covers(books, cache = {}, now = Date.now(), find = lookup) {
   const next = {};
@@ -63,7 +67,7 @@ export async function covers(books, cache = {}, now = Date.now(), find = lookup)
   for (const b of books) {
     const key = coverKey(b);
     if (next[key]) continue;
-    let hit = cache[key];
+    let hit = b.coverUrl ? { url: b.coverUrl, at: now, v: VERSION } : cache[key];
     if (!hit || (!hit.url && (hit.v !== VERSION || now - hit.at > RETRY_DAYS * 86400000))) {
       const found = await find(b);
       // A miss because a catalogue errored is not remembered, so the next run asks again.
