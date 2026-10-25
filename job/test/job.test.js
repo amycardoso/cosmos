@@ -6,7 +6,7 @@ import { reading } from '../src/koreader.js';
 import { toPlay, mergeHistory, music, fromExport, withExport } from '../src/spotify.js';
 import { normEntry, screens } from '../src/bingers.js';
 import { archive, skipSummary } from '../src/archive.js';
-import { family, fetchGenres, lookupArtist } from '../src/genres.js';
+import { family, fetchGenres, lookupArtist, retryAfter } from '../src/genres.js';
 import { compose, fit } from '../src/build.js';
 import { statisticsDb, play } from './fixtures.js';
 
@@ -371,4 +371,13 @@ test('connections: an artist heard for a few seconds is not part of the soundtra
     since: t('2026-01-01T00:00:00Z'),
   }, span);
   assert.deepEqual(c.soundtracks.Duna.artists, []);
+});
+
+test('Retry-After is read as seconds or a date, and ignored when past or unreadable', () => {
+  const now = Date.parse('2026-10-25T12:00:00Z');
+  assert.equal(retryAfter('5', now), 5000);
+  assert.equal(retryAfter('Sun, 25 Oct 2026 12:00:10 GMT', now), 10000);
+  assert.equal(retryAfter('Sun, 25 Oct 2026 11:59:00 GMT', now), null);
+  assert.equal(retryAfter('soon', now), null);
+  assert.equal(retryAfter(null, now), null);
 });
