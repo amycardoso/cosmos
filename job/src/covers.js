@@ -67,7 +67,14 @@ export async function covers(books, cache = {}, now = Date.now(), find = lookup)
   for (const b of books) {
     const key = coverKey(b);
     if (next[key]) continue;
-    let hit = b.coverUrl ? { url: b.coverUrl, at: now, v: VERSION } : cache[key];
+    // Skoob's cover replaces the cached one only once it has actually downloaded.
+    const given = b.coverUrl && (await download(b.coverUrl));
+    if (given) {
+      next[key] = { url: b.coverUrl, at: now, v: VERSION };
+      images[key] = { file: fileName(key, given.type), bytes: given.bytes };
+      continue;
+    }
+    let hit = cache[key];
     if (!hit || (!hit.url && (hit.v !== VERSION || now - hit.at > RETRY_DAYS * 86400000))) {
       const found = await find(b);
       // A miss because a catalogue errored is not remembered, so the next run asks again.
@@ -75,14 +82,17 @@ export async function covers(books, cache = {}, now = Date.now(), find = lookup)
     }
     if (!hit) continue;
     next[key] = hit;
-    if (!hit.url) continue;
-    const res = await fetch(hit.url).catch(() => null);
-    const type = res?.headers.get('content-type') || '';
-    if (!res?.ok || !type.startsWith('image/')) continue;
-    const bytes = Buffer.from(await res.arrayBuffer());
-    // Open Library answers a missing size with a tiny blank image; treat that as no cover.
-    if (bytes.length < 1000) continue;
-    images[key] = { file: fileName(key, type), bytes };
+    const got = hit.url && (await download(hit.url));
+    if (got) images[key] = { file: fileName(key, got.type), bytes: got.bytes };
   }
   return { cache: next, images };
+}
+
+async function download(url) {
+  const res = await fetch(url).catch(() => null);
+  const type = res?.headers.get('content-type') || '';
+  if (!res?.ok || !type.startsWith('image/')) return null;
+  const bytes = Buffer.from(await res.arrayBuffer());
+  // Open Library answers a missing size with a tiny blank image; treat that as no cover.
+  return bytes.length < 1000 ? null : { type, bytes };
 }

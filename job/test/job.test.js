@@ -222,6 +222,8 @@ test('skoob: the same book under another title, a broken charset, or a cover fro
   assert.ok(sameRead(choc, { title: 'Chocolate Quente �s Quintas-Feiras', author: 'Michiko Aoyama', finished: '2026-05-03' }));
   // Another book by the same author months apart stays apart.
   assert.ok(!sameRead(choc, { title: 'A Biblioteca dos Sonhos Secretos', author: 'Michiko Aoyama', finished: '2026-08-20' }));
+  assert.ok(!sameRead(choc, { title: 'A Biblioteca dos Sonhos Secretos', author: 'Michiko Aoyama', finished: '2026-05-03' }));
+  assert.ok(!sameRead({ title: 'Harry Potter 1', author: 'J.K. Rowling' }, { title: 'Harry Potter 2', author: 'J.K. Rowling' }));
   const read = { books: [{ ...choc, status: 'lido' }], library: [], fingerprints: [] };
   const out = withSkoob(read, [{ title: 'Chocolate Quente �s Quintas-Feiras', author: 'Michiko Aoyama', pages: 160, finished: '2026-05-03', cover: 'https://example.org/c.jpg' }], span);
   assert.equal(out.books.length, 1);
@@ -235,7 +237,8 @@ test('screens: a backlog ticked off at once is not hours of that day', async () 
   // Three episodes marked together after watching them stay: a short burst.
   const evening = Array.from({ length: 3 }, (_, i) => ({ start: t0 + 86400000 + i * 60000, minutes: 45 }));
   const binge = Array.from({ length: 10 }, (_, i) => ({ start: t0 + 2 * 86400000 + i * 46 * 60000, minutes: 45 }));
-  const marked = backfill([...bulk, ...evening, ...binge]);
+  const epic = [{ start: t0 + 3 * 86400000, minutes: 420 }];
+  const marked = backfill([...bulk, ...evening, ...binge, ...epic]);
   assert.equal(marked.size, 30);
   assert.ok(bulk.every((s) => marked.has(s)));
 });
@@ -250,6 +253,11 @@ test('covers: Skoob\'s cover skips the lookup', async () => {
     assert.equal(asked, 0);
     assert.equal(out.cache['a|b'].url, 'https://example.org/a.jpg');
     assert.ok(out.images['a|b']);
+    // A broken Skoob address keeps the cover that already worked.
+    globalThis.fetch = async (url) => (url.includes('skoob') ? { ok: false, headers: new Map() } : { ok: true, headers: new Map([['content-type', 'image/jpeg']]), arrayBuffer: async () => new ArrayBuffer(2000) });
+    const kept = await covers([{ title: 'A', author: 'B', coverUrl: 'https://skoob.example/x.jpg' }], { 'a|b': { url: 'https://example.org/a.jpg', at: 1, v: 2 } }, 2);
+    assert.equal(kept.cache['a|b'].url, 'https://example.org/a.jpg');
+    assert.ok(kept.images['a|b']);
   } finally {
     globalThis.fetch = realFetch;
   }

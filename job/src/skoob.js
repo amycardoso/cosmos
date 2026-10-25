@@ -13,20 +13,27 @@ export function normSkoob(items) {
 
 // Words that can identify a book: accents off, short words out, and any word holding a
 // replacement character (an import decoded with the wrong charset) left out of the comparison.
-const words = (t) => new Set((t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-  .split(/[^a-z0-9\ufffd]+/).filter((w) => w.length > 2 && !w.includes('\ufffd')));
+const tokens = (t) => (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  .split(/[^a-z0-9\ufffd]+/).filter((w) => w && !w.includes('\ufffd'));
+const words = (t) => new Set(tokens(t).filter((w) => w.length > 2 && !/^\d+$/.test(w)));
+// Volume numbers: "Harry Potter 1" and "Harry Potter 2" share every other word.
+const numbers = (t) => new Set(tokens(t).filter((w) => /^\d+$/.test(w)));
 const days = (a, b) => Math.abs(Date.parse(a) - Date.parse(b)) / 86400000;
 
 // The same book often carries different titles on the two shelves ("As Crônicas de Nárnia - Coleção
 // de Luxo: O Leão, a Feiticeira…" on the e-reader, "O Leão, a Feiticeira… (As Crônicas de Nárnia #1)"
 // on Skoob). It is the same book when the main titles match, when nearly all of Skoob's title words
-// are in the other one, or when the same author's book was finished within a few days.
+// are in the other one, or when the same author's book with a title word in common was finished
+// within a few days. Two titles that both carry volume numbers must share one.
 export function sameRead(k, s) {
   if (simple(k.title) === simple(s.title)) return true;
+  const kn = numbers(k.title), sn = [...numbers(s.title)];
+  if (kn.size && sn.length && !sn.some((n) => kn.has(n))) return false;
   const kw = words(k.title), sw = [...words(s.title)];
-  if (sw.length >= 2 && sw.filter((w) => kw.has(w)).length / sw.length >= 0.75) return true;
+  const shared = sw.filter((w) => kw.has(w)).length;
+  if (sw.length >= 2 && shared / sw.length >= 0.75) return true;
   const ka = words(k.author), sa = [...words(s.author)];
-  return Boolean(k.finished && s.finished && days(k.finished, s.finished) <= 3 && sa.some((w) => ka.has(w)));
+  return Boolean(shared && k.finished && s.finished && days(k.finished, s.finished) <= 3 && sa.some((w) => ka.has(w)));
 }
 
 // read: the reading source's output. Returns it with Skoob's books of the year added.

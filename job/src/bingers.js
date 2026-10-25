@@ -183,7 +183,8 @@ export function backfill(sessions) {
   const sorted = [...sessions].sort((a, b) => a.start - b.start);
   let burst = [];
   const close = () => {
-    if (burst.reduce((a, s) => a + s.minutes, 0) > BACKFILL_MINUTES) for (const s of burst) out.add(s);
+    // A single long film is not a burst.
+    if (burst.length > 1 && burst.reduce((a, s) => a + s.minutes, 0) > BACKFILL_MINUTES) for (const s of burst) out.add(s);
   };
   for (const s of sorted) {
     const last = burst[burst.length - 1];
