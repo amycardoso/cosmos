@@ -1,7 +1,6 @@
 // Music, from the Spotify Web API. Spotify only remembers the last 50 plays,
 // so every run adds the new ones to a history the job keeps in its own store.
 import { minutesPerDay, clocks, inPeriod, PERIOD_DAYS, round1 } from './aggregate.js';
-import { local, dayIndex } from './time.js';
 
 const API = 'https://api.spotify.com/v1';
 
@@ -94,10 +93,12 @@ export function music(all, nowPlaying, span) {
     : latest
       ? { title: latest.title, artist: latest.artists.join(', '), album: latest.album, image: latest.image, playedAt: latest.at }
       : null;
-  const firstDay = thisYear.length ? dayIndex(local(thisYear[0].at).date, span.year) : null;
+  const listeningDays = minutesPerDay(sessions, span);
+  const first = listeningDays.findIndex((m) => m > 0);
+  const firstDay = first >= 0 ? first : null;
 
   return {
-    listeningDays: minutesPerDay(sessions, span),
+    listeningDays,
     listeningClocks: clocks(sessions, span),
     // Before the first play there is nothing to count (the job's first run, before the import).
     listeningSince: firstDay,

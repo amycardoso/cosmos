@@ -327,6 +327,7 @@ test('music: a play counts from when it began, not when it ended', () => {
   const day = dayIndex('2026-03-10', span.year);
   assert.equal(out.listeningDays[day], 4);
   assert.equal(out.listeningDays[day + 1], 0);
+  assert.equal(out.listeningSince, day);
 });
 
 test('connections: an artist heard for a few seconds is not part of the soundtrack', async () => {
