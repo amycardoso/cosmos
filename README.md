@@ -2,7 +2,7 @@
 
 A private site with my year in reading, music, and series and films, in the colours of Hubble's ultraviolet Jupiter.
 
-![The site with sample data: the three day-by-day belts lighting up the same day, the period switch, the constellation linking books to the music and shows around them, the shared hours grid, each book's soundtrack, and the music and screens sections](docs/cosmos.gif)
+![The site with sample data: Jupiter turning beside the three day-by-day belts lighting up the same day, the period switch, the constellation linking books to the music and shows around them, the shared hours grid, each book's soundtrack, and the music and screens sections](docs/cosmos.gif)
 
 <sub>Recorded with the sample data in `site/data/cosmos.js`.</sub>
 
