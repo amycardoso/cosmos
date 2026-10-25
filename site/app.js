@@ -650,17 +650,49 @@
       const limb = (mu) => Math.min(1, 0.33 + 0.9 * mu);
       // Taken out of the map more gently than it is put back, so the stretched rim never burns white.
       const lift = (mu) => Math.max(0.8, Math.min(1, 0.62 + 0.55 * mu));
-      // The map: 1024 longitudes by 512 latitudes. Only the face out to 70 degrees is sharp
-      // enough to use, so that face is stretched to cover each half of the globe.
+      // The map: 1024 longitudes by 512 latitudes. The photo only shows one face, sharp out to
+      // about 70 degrees. That face is kept as it is; the far side, which no one photographed,
+      // is the same bands softened (each latitude's own colour, with a faint, blurred trace of
+      // the face's detail), and the two meet in a long cross-fade so no edge or mirror line shows.
       const TW = 1024, TH = 512, tex = new Float32Array(TW * TH * 3);
+      const Q = 256, EDGE = (70 / 180) * Math.PI; // one strip per latitude, 70 degrees either way
+      const at = (x, y) => { // bilinear, so the stretched rim does not turn into streaks
+        const x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0, out = [0, 0, 0];
+        for (const [dx, dy, w] of [[0, 0, (1 - fx) * (1 - fy)], [1, 0, fx * (1 - fy)], [0, 1, (1 - fx) * fy], [1, 1, fx * fy]]) {
+          const k = (Math.min(S - 1, y0 + dy) * S + Math.min(S - 1, x0 + dx)) * 4;
+          out[0] += px[k] * w; out[1] += px[k + 1] * w; out[2] += px[k + 2] * w;
+        }
+        return out;
+      };
+      const strip = new Float32Array(TH * Q * 3), soft = new Float32Array(TH * Q * 3), mean = new Float32Array(TH * 3);
       for (let j = 0; j < TH; j++) {
-        const lat = ((j + 0.5) / TH - 0.5) * Math.PI;
-        for (let i = 0; i < TW; i++) {
-          const lon = ((i + 0.5) / TW) * 2 * Math.PI - Math.PI;
-          const a = Math.abs(lon), phi = (Math.PI / 2 - Math.abs(Math.PI / 2 - a)) * (70 / 90) * Math.sign(lon);
-          const x = cx + rx * Math.cos(lat) * Math.sin(phi), y = cy + ry * Math.sin(lat);
-          const k = (Math.round(y) * S + Math.round(x)) * 4, l = lift(Math.cos(lat) * Math.cos(phi)), o = (j * TW + i) * 3;
-          tex[o] = px[k] / l; tex[o + 1] = px[k + 1] / l; tex[o + 2] = px[k + 2] / l;
+        const lat = ((j + 0.5) / TH - 0.5) * Math.PI, y = cy + ry * Math.sin(lat);
+        let n = 0;
+        for (let q = 0; q < Q; q++) {
+          const phi = ((q + 0.5) / Q * 2 - 1) * EDGE, l = lift(Math.cos(lat) * Math.cos(phi));
+          const c = at(cx + rx * Math.cos(lat) * Math.sin(phi), y), o = (j * Q + q) * 3;
+          for (let ch = 0; ch < 3; ch++) strip[o + ch] = c[ch] / l;
+          if (Math.abs(phi) < EDGE * 0.85) { for (let ch = 0; ch < 3; ch++) mean[j * 3 + ch] += strip[o + ch]; n++; }
+        }
+        for (let ch = 0; ch < 3; ch++) mean[j * 3 + ch] /= n;
+        for (let q = 0; q < Q; q++) for (let ch = 0; ch < 3; ch++) { // a wide horizontal blur
+          let sum = 0, m = 0;
+          for (let d = -14; d <= 14; d++) { const r = q + d; if (r >= 0 && r < Q) { sum += strip[(j * Q + r) * 3 + ch]; m++; } }
+          soft[(j * Q + q) * 3 + ch] = sum / m;
+        }
+      }
+      const read = (arr, j, phi, ch) => {
+        const f = Math.max(0, Math.min(Q - 1.001, ((phi / EDGE + 1) / 2) * Q - 0.5)), q = Math.floor(f), t = f - q;
+        return arr[(j * Q + q) * 3 + ch] * (1 - t) + arr[(j * Q + q + 1) * 3 + ch] * t;
+      };
+      const ramp = (a) => (a <= 38 ? 1 : a >= 70 ? 0 : 0.5 + 0.5 * Math.cos(((a - 38) / 32) * Math.PI));
+      for (let j = 0; j < TH; j++) for (let i = 0; i < TW; i++) {
+        const lon = ((i + 0.5) / TW) * 360 - 180, w = ramp(Math.abs(lon));
+        const back = (lon < 0 ? lon + 180 : lon - 180) * (60 / 90) * (Math.PI / 180); // the face again, smaller and softened
+        const front = Math.max(-EDGE, Math.min(EDGE, (lon * Math.PI) / 180)), o = (j * TW + i) * 3;
+        for (let ch = 0; ch < 3; ch++) {
+          const m = mean[j * 3 + ch], far = m + 0.2 * (read(soft, j, back, ch) - m);
+          tex[o + ch] = w * read(strip, j, front, ch) + (1 - w) * far;
         }
       }
       // Each screen pixel's latitude, longitude and shading, worked out once.
