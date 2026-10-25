@@ -39,6 +39,20 @@ rm current.json.gz history.json.gz skips.json.gz
 
 The export replaces whatever the job kept up to its last play, so importing a newer export later works the same way. Podcasts, audiobooks and plays under 30 seconds are left out of the history. Skips only exist in the export, so the import counts them once into `spotify-skips`, and the page shows them as of the export's last day.
 
+### Seeding the genres
+
+MusicBrainz turns GitHub's shared runners away after a few requests, so the first few hundred artists are looked up from my own computer (about three seconds each):
+
+```sh
+npx wrangler kv key get spotify-history --namespace-id <id> --remote > history.json.gz
+npx wrangler kv key get artist-genres --namespace-id <id> --remote > current.json.gz
+npm run genres-seed -- genres.json.gz history.json.gz current.json.gz 600
+npx wrangler kv key put artist-genres --namespace-id <id> --remote --path genres.json.gz
+rm history.json.gz current.json.gz genres.json.gz
+```
+
+The build keeps adding the rest, a few each run. Until half of the listening hours have a genre, the music page says how far along it is instead of drawing the genres.
+
 ## Privacy
 
 The repository is public; the data is not.

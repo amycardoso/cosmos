@@ -11,7 +11,8 @@
     "test": "node --test job/test/*.test.js",
     "spotify-auth": "node job/src/spotify-auth.js",
     "skoob-import": "node job/src/skoob-import.js",
-    "spotify-import": "node job/src/spotify-import.js"
+    "spotify-import": "node job/src/spotify-import.js",
+    "genres-seed": "node job/src/genres-seed.js"
   },
   "dependencies": {
     "sql.js": "1.14.2"

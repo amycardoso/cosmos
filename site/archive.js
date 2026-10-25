@@ -96,6 +96,15 @@
     const figs = document.querySelectorAll('[data-genres-fig]');
     const G = A.genres;
     if (!G || !G.families.length) { figs.forEach((f) => (f.hidden = true)); return; }
+    // With only a few artists known, the shares would be those few artists' alone: until half
+    // the hours have a genre, the first figure says how far along it is and draws nothing.
+    const covered = G.known / Math.max(1, A.totals.hours);
+    if (covered < 0.5) {
+      figs[1].hidden = true;
+      figs[0].querySelectorAll('.wide, .readout').forEach((n) => (n.hidden = true));
+      figs[0].append(el('p', { class: 'empty', text: `Os gêneros estão chegando do MusicBrainz: já sei o de ${pct(covered)} das horas. O gráfico aparece quando passar da metade.` }));
+      return;
+    }
     const fams = G.families;
     const BELTS = ['#BFE6F7', '#3948CF', '#84CDEE', '#5A6BE0', '#DDEFF8', '#2B379E', '#9FD8F0', '#7886E6', '#5FB4DB', '#232C80', '#C9D3F5'];
     const color = (i) => BELTS[i % BELTS.length];
@@ -177,7 +186,6 @@
       li.addEventListener('pointerleave', () => focus(null));
       key.append(li);
     });
-    const covered = G.known / Math.max(1, A.totals.hours);
     $('[data-genres-note]').textContent = `Gêneros do MusicBrainz, marcados pela comunidade em cada artista. Já sei o gênero de ${pct(covered)} das horas; a cada deploy mais artistas entram.`;
   })();
 

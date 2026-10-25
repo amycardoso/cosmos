@@ -7,6 +7,7 @@ const MB = 'https://musicbrainz.org/ws/2';
 const UA = 'cosmos/1.0 (https://github.com/amycardoso/cosmos)';
 const STALE = 180 * 86400000; // genres change slowly; look again twice a year
 const MISS = 30 * 86400000; // an artist MusicBrainz didn't know may be added later
+const PACE = 1500; // a little slower than the one request a second MusicBrainz allows
 
 // Her ten families, each from the genres that lead to it. The first rule a genre matches
 // wins, so the specific ones come before the broad ones (post-rock before rock).
@@ -34,11 +35,19 @@ export function family(genres) {
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function mb(path) {
-  const res = await fetch(MB + path, { headers: { 'User-Agent': UA, Accept: 'application/json' } });
-  if (res.status === 503) throw new Error('MusicBrainz is rate limiting');
-  if (!res.ok) throw new Error(`MusicBrainz answered ${res.status}`);
-  return res.json();
+// MusicBrainz answers 503 when a shared address (a GitHub runner's, say) asks too often:
+// wait as long as it says, or a little longer each time, before giving up.
+async function mb(path, pause = wait) {
+  for (let k = 0; ; k++) {
+    const res = await fetch(MB + path, { headers: { 'User-Agent': UA, Accept: 'application/json' } });
+    if (res.status === 503 && k < 3) {
+      await pause((+res.headers.get('retry-after') || 2 ** k * 3) * 1000);
+      continue;
+    }
+    if (res.status === 503) throw new Error('MusicBrainz is rate limiting');
+    if (!res.ok) throw new Error(`MusicBrainz answered ${res.status}`);
+    return res.json();
+  }
 }
 
 const norm = (s) => s.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, ' ').trim();
@@ -48,7 +57,7 @@ export async function lookupArtist(name, get = mb, pause = wait) {
   const found = await get(`/artist?query=${encodeURIComponent(`artist:"${name.replace(/"/g, '')}"`)}&limit=5&fmt=json`);
   const match = (found.artists || []).find((a) => a.score >= 90 && norm(a.name) === norm(name));
   if (!match) return [];
-  await pause(1100);
+  await pause(PACE);
   const full = await get(`/artist/${match.id}?inc=genres&fmt=json`);
   return (full.genres || []).sort((a, b) => b.count - a.count).slice(0, 5).map((g) => g.name);
 }
@@ -71,7 +80,7 @@ export async function fetchGenres(artists, cache, now, budget = 50, lookup = loo
       console.log(`genres: stopped after ${looked} (${err.message})`);
       break;
     }
-    await pause(1100);
+    await pause(PACE);
   }
   return { cache: out, looked, left: Math.max(0, due.length - looked) };
 }
