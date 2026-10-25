@@ -96,7 +96,7 @@ export async function main() {
   }, state, span);
 
   const listen = await source('music', has('SPOTIFY_CLIENT_ID', 'SPOTIFY_CLIENT_SECRET', 'SPOTIFY_REFRESH_TOKEN'), async () => {
-    const { history, nowPlaying } = await fetchSpotify(env, (await state.get('spotify-history')) || [], span);
+    const { history, nowPlaying } = await fetchSpotify(env, (await state.get('spotify-history')) || []);
     await state.put('spotify-history', history);
     return music(history, nowPlaying, span);
   }, state, span);

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { local, dayIndex, localIso } from '../src/time.js';
 import { yearSpan, minutesPerDay, clock, inPeriod } from '../src/aggregate.js';
 import { reading } from '../src/koreader.js';
-import { toPlay, mergeHistory, music } from '../src/spotify.js';
+import { toPlay, mergeHistory, music, fromExport, withExport } from '../src/spotify.js';
 import { normEntry, screens } from '../src/bingers.js';
 import { compose, fit } from '../src/build.js';
 import { statisticsDb, play } from './fixtures.js';
@@ -44,17 +44,39 @@ test('reading: books, status, progress, library and fingerprints', async () => {
   assert.equal(r.readingClocks.week[5][22], 1); // Friday 22h is the busiest this week
 });
 
-test('music: history merges without duplicates and keeps two years', () => {
+test('music: history merges without duplicates, and the views skip older years', () => {
   const a = [play('2026-10-19T12:00:00Z', 'Baby', 'Gal Costa'), play('2026-10-19T12:04:00Z', 'Trem Azul', 'Lô Borges')].map(toPlay);
   const old = toPlay(play('2024-12-31T12:00:00Z', 'Old', 'X'));
-  const h = mergeHistory([old, a[0]], a, span);
-  assert.equal(h.length, 2);
+  const h = mergeHistory([old, a[0]], a);
+  assert.equal(h.length, 3);
   const m = music(h, null, span);
+  assert.equal(m.historySince, old.at);
   assert.equal(m.recentTrack.title, 'Trem Azul');
   assert.equal(m.periods.week.topTracks.length, 2);
   assert.equal(m.periods.year.artists[0].hours, 0.1);
   assert.equal(m.listeningDays[dayIndex('2026-10-19', 2026)], 8);
   assert.equal(m.listeningSince, dayIndex('2026-10-19', 2026));
+});
+
+test('music: the extended history export replaces what the job kept until it was made', () => {
+  const row = (ts, title, ms = 200000, extra = {}) => ({ ts, ms_played: ms, master_metadata_track_name: title, master_metadata_album_artist_name: 'Gal Costa', master_metadata_album_album_name: 'Gal', spotify_track_uri: `spotify:track:Gal Costa-${title}`, ...extra });
+  const rows = [
+    row('2026-10-18T12:00:00Z', 'Baby'),
+    row('2026-10-18T12:05:00Z', 'Skipped', 4000),
+    row('2026-10-18T12:06:00Z', null, 900000, { episode_name: 'A podcast' }),
+    row('2026-10-19T12:00:00Z', 'Divino'),
+  ];
+  const imported = rows.map(fromExport).filter(Boolean);
+  assert.deepEqual(imported.map((p) => [p.id, p.ms, p.artists[0]]), [['Gal Costa-Baby', 200000, 'Gal Costa'], ['Gal Costa-Divino', 200000, 'Gal Costa']]);
+  // The job caught the last exported play too, a fraction of a second later, and one after the export.
+  const kept = [toPlay(play('2026-10-19T12:00:00.420Z', 'Divino', 'Gal Costa')), toPlay(play('2026-10-19T12:04:00Z', 'Trem Azul', 'Lô Borges'))];
+  const h = withExport(kept, imported);
+  assert.deepEqual(h.map((p) => p.title), ['Baby', 'Divino', 'Trem Azul']);
+  // A track first seen in the export borrows its art from a later API play.
+  const m = music(mergeHistory(h, [toPlay(play('2026-10-19T13:00:00Z', 'Baby', 'Gal Costa'))]), null, span);
+  const baby = m.periods.year.topTracks.find((t) => t.title === 'Baby');
+  assert.equal(baby.plays, 2);
+  assert.equal(baby.image, 'https://i.scdn.co/a');
 });
 
 test('screens: hours, shows in progress, films, feelings and queue', () => {

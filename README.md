@@ -24,6 +24,19 @@ Every three hours, `.github/workflows/deploy.yml` runs `npm run build`, which:
 
 If one source fails, the site keeps that source's last good read and says so in the footer.
 
+### The full Spotify history
+
+The API only ever sees forward, so everything before the job's first run comes from Spotify's Extended Streaming History export (Account → Privacy, delivered by email). It is folded in by hand, on my own computer, never through the repository:
+
+```sh
+npx wrangler kv key get spotify-history --namespace-id <id> --remote > current.json.gz
+npm run spotify-import -- history.json.gz current.json.gz "path/to/Spotify Extended Streaming History"
+npx wrangler kv key put spotify-history --namespace-id <id> --remote --path history.json.gz
+rm current.json.gz history.json.gz
+```
+
+The export replaces whatever the job kept up to its last play, so importing a newer export later works the same way. Podcasts, audiobooks and plays under 30 seconds are left out.
+
 ## Privacy
 
 The repository is public; the data is not.
