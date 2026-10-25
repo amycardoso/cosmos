@@ -20,7 +20,7 @@ Every three hours, `.github/workflows/deploy.yml` runs `npm run build`, which:
 2. asks Spotify for the latest plays and adds them to a history the job keeps, because Spotify only remembers the last 50;
 3. mirrors the Bingers library through `/v1/entries` and its change cursor, plus the library and the season of each show in progress;
 4. crosses the three timelines: what played on Spotify while each book was open, how much of each book was read in silence, and which shows shared their weeks with a book. Only those links reach the site, never the raw plays or sessions;
-5. sums up the whole Spotify history for the music page's "Dez anos" (artists year by year, obsessions, skips, this day in past years, first listens);
+5. sums up the whole Spotify history for the music page's "Dez anos" (artists year by year, genres, obsessions, skips, this day in past years, first listens). Genres come from MusicBrainz, since Spotify no longer fills them in for most artists: each run looks up about 50 more artists, most listened first, and keeps the answers;
 6. writes `dist/` with the real data in `dist/data/cosmos.js` (and the music page's long view in `dist/data/archive.js`), and deploys it to Cloudflare Pages.
 
 If one source fails, the site keeps that source's last good read and says so in the footer.
@@ -45,7 +45,7 @@ The repository is public; the data is not.
 
 - Tokens live only in GitHub Actions secrets.
 - The data never touches the repository: the job deploys straight to Cloudflare, uploads no artifacts and prints nothing but which sources worked.
-- What has to survive between runs (the Spotify history and skips, the Bingers mirror, each source's last good read) lives in a Cloudflare KV namespace.
+- What has to survive between runs (the Spotify history and skips, the artists' genres, the Bingers mirror, each source's last good read) lives in a Cloudflare KV namespace.
 - The site sits behind Cloudflare Access, so only the people I allow can open it.
 
 ## Setup

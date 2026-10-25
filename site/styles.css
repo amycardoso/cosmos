@@ -296,6 +296,15 @@ i.sw{display:inline-block;width:14px;height:6px;border-radius:3px;margin-right:8
 .onday .t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .onday .t small{color:var(--dim);margin-left:8px;font-size:13px}
 .onday .yr--empty .t{color:var(--dim)}
+[data-archive] svg .belt-name{font-size:13px;font-weight:600;pointer-events:none}
+.genres .part{cursor:pointer;transition:opacity .2s}
+.genres.dimmed .part{opacity:.25}.genres.dimmed .part.on{opacity:1}
+.genre-key{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px 32px}
+.genre-key li{display:grid;grid-template-columns:14px minmax(0,1fr) auto;gap:10px;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:8px;font-size:15px}
+.genre-key i{width:14px;height:10px;border-radius:3px;align-self:center}
+.genre-key span{min-width:0}
+.genre-key small{display:block;color:var(--dim);font-size:13px}
+.genre-key em{font-style:normal;color:var(--haze);font-size:14px}
 @media (max-width:560px){.onday .yr{grid-template-columns:38px 64px minmax(0,1fr);gap:10px;font-size:14px}.onday .t small{display:block;margin:0}.onday .t{white-space:normal}}
 @media (prefers-reduced-motion:reduce){.comets .head{animation:none}}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.today-ring{animation:none}.fig{transition:none}}

@@ -6,6 +6,7 @@ import { reading } from '../src/koreader.js';
 import { toPlay, mergeHistory, music, fromExport, withExport } from '../src/spotify.js';
 import { normEntry, screens } from '../src/bingers.js';
 import { archive, skipSummary } from '../src/archive.js';
+import { family, fetchGenres, lookupArtist } from '../src/genres.js';
 import { compose, fit } from '../src/build.js';
 import { statisticsDb, play } from './fixtures.js';
 
@@ -100,7 +101,38 @@ test('archive: orbits, a comet, on this day and first listens across the years',
   assert.equal(a.first[0].title, 'Trem Azul');
   assert.equal(a.first[0].first, '2025-05-01');
   assert.equal(a.first[0].hour, '12h00'); // São Paulo time
+  assert.equal(a.genres, null);
+  const g = archive(history, null, span, (artist) => (artist === 'Lô Borges' ? 'Música brasileira' : null));
+  assert.equal(g.genres.families.length, 1);
+  assert.equal(g.genres.families[0].years[1], 2); // 30 plays of 4 min in 2025
+  assert.equal(g.genres.known, 2);
   assert.equal(archive([], null, span), null);
+});
+
+test('genres: MusicBrainz genres fold into her families, most voted first', async () => {
+  assert.equal(family(['film score', 'ambient']), 'Trilhas sonoras');
+  assert.equal(family(['modern classical', 'minimalism']), 'Clássico e neoclássico');
+  assert.equal(family(['post-rock']), 'Pós-rock e ambiente');
+  assert.equal(family(['indie rock']), 'Indie e folk');
+  assert.equal(family(['piano rock']), 'Rock alternativo');
+  assert.equal(family(['electropop', 'pop']), 'Pop');
+  assert.equal(family(['mpb']), 'Música brasileira');
+  assert.equal(family(['spoken word']), null);
+  // Only an exact name match counts, and the genres come back by votes.
+  const answers = {
+    '/artist?': { artists: [{ id: 'x', name: 'Coldplay Tribute', score: 100 }, { id: 'c', name: 'Coldplay', score: 100 }] },
+    '/artist/c': { genres: [{ name: 'pop', count: 3 }, { name: 'alternative rock', count: 9 }] },
+  };
+  const get = async (path) => answers[Object.keys(answers).find((k) => path.startsWith(k))];
+  assert.deepEqual(await lookupArtist('Coldplay', get, async () => {}), ['alternative rock', 'pop']);
+  // A run looks up only what is due, and a failure keeps what it already learned.
+  const now = Date.parse('2026-10-25T12:00:00Z');
+  const cache = { Known: { g: ['pop'], at: now - 86400000 } };
+  let calls = 0;
+  const lookup = async (a) => { if (++calls === 2) throw new Error('503'); return [a.toLowerCase()]; };
+  const r = await fetchGenres(['Known', 'A', 'B', 'C'], cache, now, 50, lookup, async () => {});
+  assert.deepEqual(Object.keys(r.cache), ['Known', 'A']);
+  assert.equal(r.left, 2);
 });
 
 test('archive: skips are counted from every start in the export', () => {
