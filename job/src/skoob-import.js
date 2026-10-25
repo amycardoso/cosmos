@@ -11,8 +11,17 @@ if (!out || !pages.length) {
   console.log('usage: node job/src/skoob-import.js <out.json.gz> <page.json> [...]');
   process.exit(1);
 }
+// Pages saved from some browsers come out as Windows-1252, and reading those as UTF-8
+// turns every accent into U+FFFD. Try UTF-8 strictly and fall back.
+const text = (bytes) => {
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  } catch {
+    return new TextDecoder('windows-1252').decode(bytes);
+  }
+};
 const items = [];
-for (const p of pages) items.push(...(JSON.parse(await readFile(p, 'utf8')).items || []));
+for (const p of pages) items.push(...(JSON.parse(text(await readFile(p))).items || []));
 const books = normSkoob(items);
 await writeFile(out, gzipSync(JSON.stringify(books)));
 console.log(`${books.length} books with a finish date written to ${out}`);
