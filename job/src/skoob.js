@@ -8,7 +8,7 @@ import { sameBook as simple } from './koreader.js';
 export function normSkoob(items) {
   return items
     .filter((b) => b.title && Number.isFinite(Date.parse(b.finished_at)))
-    .map((b) => ({ title: b.title.trim(), author: (b.author || '').trim(), pages: Number(b.pages) || 0, finished: local(Date.parse(b.finished_at)).date, cover: b.cover || null }));
+    .map((b) => ({ title: b.title.trim(), author: (b.author || '').trim(), pages: Number(b.pages) || 0, finished: local(Date.parse(b.finished_at)).date, cover: /^https:\/\//.test(b.cover_filename) ? b.cover_filename : null }));
 }
 
 // Words that can identify a book: accents off, short words out, and any word holding a

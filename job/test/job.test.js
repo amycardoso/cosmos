@@ -162,7 +162,7 @@ test('covers: titles and authors as KOReader stores them', async () => {
 test('skoob: adds this year\'s finished books KOReader does not know', async () => {
   const { normSkoob, withSkoob } = await import('../src/skoob.js');
   const skoob = normSkoob([
-    { title: 'Piranesi', author: 'Susanna Clarke', pages: 272, finished_at: '2026-03-12T03:00:00Z' },
+    { title: 'Piranesi', author: ' Susanna Clarke ', pages: 272, finished_at: '2026-03-12T03:00:00Z', cover_filename: 'https://skoob.s3.amazonaws.com/livros/1/p.jpg' },
     { title: 'Torto Arado', author: 'Itamar Vieira Junior', pages: 264, finished_at: '2026-01-20T02:00:00Z' },
     { title: 'Velho', author: 'X', pages: 100, finished_at: '2025-12-01T12:00:00Z' },
     { title: 'Sem data', author: 'Y', pages: 50, finished_at: null },
@@ -170,6 +170,9 @@ test('skoob: adds this year\'s finished books KOReader does not know', async () 
     { title: 'Torto arado', author: 'Itamar Vieira Junior', pages: 264, finished_at: '2026-01-20T02:00:00Z' },
   ]);
   assert.equal(skoob.length, 4);
+  assert.equal(skoob[0].author, 'Susanna Clarke');
+  assert.equal(skoob[0].cover, 'https://skoob.s3.amazonaws.com/livros/1/p.jpg');
+  assert.equal(skoob[1].cover, null);
   const read = { books: [{ title: 'Piranesi: edição especial', status: 'lido' }], library: [], fingerprints: [] };
   const out = withSkoob(read, skoob, span);
   assert.deepEqual(out.books.map((b) => b.title), ['Piranesi: edição especial', 'Torto Arado']);

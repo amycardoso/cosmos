@@ -11,8 +11,8 @@ if (!out || !pages.length) {
   console.log('usage: node job/src/skoob-import.js <out.json.gz> <page.json> [...]');
   process.exit(1);
 }
-// Pages saved from some browsers come out as Windows-1252, and reading those as UTF-8
-// turns every accent into U+FFFD. Try UTF-8 strictly and fall back.
+// Skoob answers in UTF-8, but a page re-saved by another tool may not be: rather than
+// turning its accents into U+FFFD, a page that isn't valid UTF-8 is read as Windows-1252.
 const text = (bytes) => {
   try {
     return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
