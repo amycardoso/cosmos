@@ -106,6 +106,12 @@ i.sw{display:inline-block;width:14px;height:6px;border-radius:3px;margin-right:8
 
 /* Connections: the constellation */
 .sky-fig figcaption p{max-width:72ch}
+/* A nebula in Jupiter's own colours sits behind the stars, fading out at the edges and drifting very slowly. */
+.sky-fig{position:relative;isolation:isolate}
+.sky-fig::before{content:"";position:absolute;inset:-40px 0;z-index:-1;pointer-events:none;background:url(img/nebula.webp) 40% 50%/auto 115%;opacity:.55;
+  -webkit-mask:radial-gradient(closest-side,#000 55%,transparent);mask:radial-gradient(closest-side,#000 55%,transparent);
+  animation:nebula 120s ease-in-out infinite alternate}
+@keyframes nebula{to{background-position:60% 42%}}
 .sky svg{display:block;width:100%;max-width:1180px;height:auto;overflow:visible;touch-action:manipulation}
 .sky text{font:13px var(--text);fill:var(--haze);pointer-events:none}
 .sky .edge{stroke:rgba(237,241,250,.24);transition:stroke .25s,stroke-opacity .25s}
@@ -307,4 +313,4 @@ i.sw{display:inline-block;width:14px;height:6px;border-radius:3px;margin-right:8
 .genre-key em{font-style:normal;color:var(--haze);font-size:14px}
 @media (max-width:560px){.onday .yr{grid-template-columns:38px 64px minmax(0,1fr);gap:10px;font-size:14px}.onday .t small{display:block;margin:0}.onday .t{white-space:normal}}
 @media (prefers-reduced-motion:reduce){.comets .head{animation:none}}
-@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.today-ring{animation:none}.fig{transition:none}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.today-ring{animation:none}.fig{transition:none}.sky-fig::before{animation:none}}

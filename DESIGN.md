@@ -155,7 +155,8 @@ Motion carries information and happens once; only today's ring and the planet ke
 - **Belts:** on load and on a period change, cells fill from 15% to full opacity left to right (560ms, up to 520ms of stagger), each belt 80ms behind the one above.
 - **Totals:** the lede's three totals count to their new value (900ms) instead of jumping.
 - **Today:** the pale ring around today's spot breathes to 25% opacity every 3.2s.
-- **Planet:** the UV Jupiter in the "now" aside turns once a minute, features crossing the disc left to right. Hubble saw one face, so the photo is unrolled into a map of that face (out to 70 degrees) and its mirror for the far side, the limb darkening taken out and laid back on as it is drawn. It pauses off screen and stays a still photo under reduced motion.
+- **Planet:** the UV Jupiter in the "now" aside turns once a minute, features crossing the disc left to right. Hubble saw one face, so the photo is unrolled into a map of that face (out to 70 degrees). The far side is the same bands softened, with only a faint trace of the face's detail, and the two meet in a long cross-fade, so no seam or mirror line shows. The limb darkening is taken out and laid back on as it is drawn. It pauses off screen and stays a still photo under reduced motion.
+- **Nebula:** behind the Conexões constellation only, a procedural nebula drawn in the same UV palette (not a photo), faded out at its edges with a radial mask and drifting over two minutes; still under reduced motion. It is atmosphere for the stars, never a full-bleed section.
 - **Figures:** a figure below the fold rises 10px and fades in once when it reaches the screen. Figures already in view never hide.
 - **Hours grid:** hours light up from 0h to 23h (22ms apart).
 - **Shelf:** books rise onto the shelf the first time it is seen.
