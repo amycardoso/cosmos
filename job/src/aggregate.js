@@ -11,6 +11,22 @@ export function yearSpan(nowMs) {
   return { year, today: today.date, days: dayIndex(today.date, year) + 1 };
 }
 
+// Any year: the year so far when it is the current one, otherwise the whole of it, Jan 1 to
+// Dec 31. A past span ends (`end`, ms) at the turn of the year; the current one ends now.
+export function spanOf(year, nowMs) {
+  const cur = yearSpan(nowMs);
+  if (year === cur.year) return cur;
+  return { year, today: `${year}-12-31`, days: dayIndex(`${year}-12-31`, year) + 1, past: true, end: Date.UTC(year + 1, 0, 1) };
+}
+
+// Every year from the one holding firstMs up to the current one, newest first.
+export function yearsSince(firstMs, span) {
+  const first = Number.isFinite(firstMs) && firstMs > 0 ? Math.max(2000, Number(local(firstMs).date.slice(0, 4))) : span.year;
+  const out = [];
+  for (let y = span.year; y >= Math.min(first, span.year); y--) out.push(y);
+  return out;
+}
+
 // sessions: [{ start: ms, minutes }]. Returns minutes per day of the year so far.
 export function minutesPerDay(sessions, span) {
   const out = new Array(span.days).fill(0);

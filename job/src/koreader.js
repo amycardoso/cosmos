@@ -69,14 +69,17 @@ export function reading(db, span, nowMs) {
 
   const sessions = [];
   const list = [];
-  for (const b of [...merged.values()].flat()) {
+  // A past year sees each book as it stood when that year ended.
+  const until = span.end ?? nowMs;
+  for (const book of [...merged.values()].flat()) {
+    for (const s of book.stats) sessions.push({ start: s.start, minutes: s.seconds / 60, book: book.id });
+    const b = span.end ? { ...book, stats: book.stats.filter((s) => s.start < span.end) } : book;
     if (!b.stats.length) continue;
-    for (const s of b.stats) sessions.push({ start: s.start, minutes: s.seconds / 60, book: b.id });
     const maxPage = Math.max(...b.stats.map((s) => s.page));
     const progress = b.pages ? Math.min(1, maxPage / b.pages) : 0;
     const last = b.stats[b.stats.length - 1].start;
     const finished = progress >= FINISHED;
-    const status = finished ? 'lido' : nowMs - last <= READING_DAYS * 86400000 ? 'lendo' : 'pausado';
+    const status = finished ? 'lido' : until - last <= READING_DAYS * 86400000 ? 'lendo' : 'pausado';
     const yearSeconds = b.stats.filter((s) => inPeriod(s.start, span, null)).reduce((a, s) => a + s.seconds, 0);
     list.push({
       id: b.id,
@@ -109,6 +112,11 @@ export function reading(db, span, nowMs) {
     // For the connections only; the site never receives it.
     timeline: year.map((b) => ({ title: b.title, hours: b.hours, sittings: sittings(b.stats.filter((s) => inPeriod(s.start, span, null))) })),
   };
+}
+
+// When the first page was turned, in ms (0 for an empty database).
+export function firstRead(db) {
+  return rows(db, 'SELECT MIN(start_time) AS first FROM page_stat_data WHERE duration > 0')[0]?.first * 1000 || 0;
 }
 
 // Minutes per ten-page stretch, plus the longest run of stretches she came back to

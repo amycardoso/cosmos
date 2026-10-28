@@ -51,6 +51,18 @@ i.sw{display:inline-block;width:14px;height:6px;border-radius:3px;margin-right:8
 .period{margin-left:auto;display:flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:999px}
 .period button{background:none;border:0;padding:6px 14px;border-radius:999px;font-size:14px;color:var(--haze);cursor:pointer}
 .period button[aria-checked=true]{background:var(--zone);color:var(--space);font-weight:600}
+.period[hidden]{display:none}
+/* Year: a pill like the period control, the native list underneath */
+.year{margin-left:auto;position:relative;display:flex}
+.year ~ .period{margin-left:0}
+.year select{appearance:none;-webkit-appearance:none;background:none;border:1px solid var(--line);border-radius:999px;padding:10px 36px 10px 16px;font:600 14px/1.2 var(--text);font-feature-settings:"tnum" 1;color:var(--zone);cursor:pointer;transition:border-color .2s}
+.year select:hover{border-color:rgba(237,241,250,.32)}
+.year select:focus-visible{outline:2px solid var(--music);outline-offset:2px}
+.year select option{background:var(--space);color:var(--zone)}
+.year::after{content:'';position:absolute;right:16px;top:50%;width:6px;height:6px;border-right:1.5px solid var(--haze);border-bottom:1.5px solid var(--haze);transform:translateY(-70%) rotate(45deg);pointer-events:none}
+/* An earlier year: the pill takes the pale zone, so it reads as a place you went to */
+.year--past select{background:var(--zone);color:var(--space);border-color:var(--zone)}
+.year--past::after{border-color:var(--space)}
 
 /* Overview: the three habits as parallel bands */
 .overview{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:56px;padding:48px var(--gutter) 56px;max-width:1440px;margin:0 auto;border-bottom:1px solid var(--line)}
