@@ -1,10 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { local, dayIndex, localIso } from '../src/time.js';
-import { yearSpan, minutesPerDay, clock, inPeriod } from '../src/aggregate.js';
-import { reading } from '../src/koreader.js';
+import { yearSpan, spanOf, yearsSince, minutesPerDay, clock, inPeriod } from '../src/aggregate.js';
+import { reading, firstRead } from '../src/koreader.js';
 import { toPlay, mergeHistory, music, fromExport, withExport } from '../src/spotify.js';
-import { normEntry, screens } from '../src/bingers.js';
+import { normEntry, screens, firstWatched } from '../src/bingers.js';
 import { archive, skipSummary } from '../src/archive.js';
 import { family, fetchGenres, lookupArtist, retryAfter } from '../src/genres.js';
 import { compose, fit } from '../src/build.js';
@@ -408,4 +408,68 @@ test('Retry-After is read as seconds or a date, and ignored when past or unreada
   assert.equal(retryAfter('Sun, 25 Oct 2026 11:59:00 GMT', now), null);
   assert.equal(retryAfter('soon', now), null);
   assert.equal(retryAfter(null, now), null);
+});
+
+test('years: a past year is the whole of it, the current one runs to today', () => {
+  assert.deepEqual(spanOf(2026, NOW), span);
+  const y = spanOf(2024, NOW);
+  assert.deepEqual([y.year, y.today, y.days, y.past], [2024, '2024-12-31', 366, true]);
+  assert.equal(y.end, Date.UTC(2025, 0, 1));
+  assert.deepEqual(yearsSince(Date.parse('2024-06-01T12:00:00Z'), span), [2026, 2025, 2024]);
+  assert.deepEqual(yearsSince(0, span), [2026]);
+  assert.deepEqual(yearsSince(Infinity, span), [2026]);
+});
+
+test('reading: a past year shows each book as it stood when the year ended', async () => {
+  const db = await statisticsDb();
+  assert.equal(firstRead(db), Date.parse('2025-05-01T12:00:00Z'));
+  const r = reading(db, spanOf(2025, NOW), NOW);
+  assert.deepEqual(r.books.map((b) => b.title), ['Rayuela']);
+  assert.equal(r.books[0].status, 'pausado');
+  assert.equal(r.readingDays.length, 365);
+  assert.equal(r.readingDays[dayIndex('2025-05-01', 2025)], 5);
+  // Books first opened later are not in that year's library yet.
+  assert.deepEqual(r.library.map((b) => b.title), ['Rayuela']);
+});
+
+test('music: a past year counts its own plays and has nothing playing now', () => {
+  const h = [play('2024-12-31T12:00:00Z', 'Old', 'X'), play('2025-03-01T12:00:00Z', 'Mid', 'Y'), play('2026-10-19T12:00:00Z', 'Baby', 'Gal Costa')].map(toPlay);
+  const m = music(h, null, spanOf(2025, NOW));
+  assert.equal(m.recentTrack, null);
+  assert.deepEqual(m.periods.year.topTracks.map((t) => t.title), ['Mid']);
+  assert.equal(m.listeningDays.length, 365);
+  assert.equal(m.timeline.length, 1);
+});
+
+test('screens: a past year lists its series, films and pace, not the seasons in progress or the queue', () => {
+  const entries = [
+    normEntry({ entity_kind: 'episode', entity_id: 'a', title_id: 's1', watched: true, plays: 1, last_watched_at: '2025-02-01T23:00:00Z' }),
+    normEntry({ entity_kind: 'episode', entity_id: 'b', title_id: 's1', watched: true, plays: 1, last_watched_at: '2025-02-08T23:00:00Z' }),
+    normEntry({ id: 'm1', title_id: 'f1', kind: 'movie', watched: true, plays: 1, last_watched_at: '2025-09-01T23:00:00Z' }),
+  ];
+  const mirror = { entries: Object.fromEntries(entries.map((e) => [e.id, e])), titles: {} };
+  const library = [{ id: 's1', name: 'The Bear', status: 'watch_next', minutes: 30 }, { id: 'f1', name: 'Perfect Days', status: 'watched', minutes: 124 }];
+  const seasons = { s1: { season: 3, episodes: [{ episode: 1, watched: true }, { episode: 2, watched: false }] } };
+  assert.equal(firstWatched(mirror), Date.parse('2025-02-01T23:00:00Z'));
+  const s = screens({ mirror, library, seasons }, spanOf(2025, NOW));
+  assert.deepEqual(s.shows.map((x) => [x.title, x.kind, x.watched]), [['The Bear', 'série', 2], ['Perfect Days', 'filme', undefined]]);
+  assert.deepEqual(s.watchlist, {});
+  assert.deepEqual(s.pace.map((p) => [p.title, p.status, p.left]), [['The Bear', null, null]]);
+  assert.equal(s.episodesPerDay.length, 365);
+});
+
+test('compose marks whether the year is the current one', () => {
+  const none = { data: null, status: 'missing' };
+  assert.equal(compose({ read: none, listen: none, watch: none }, span, NOW).current, true);
+  const past = compose({ read: none, listen: none, watch: none }, spanOf(2025, NOW), NOW);
+  assert.deepEqual([past.current, past.year, past.readingDays.length], [false, 2025, 365]);
+});
+
+test('covers: only so many lookups a run, the rest wait for the next', async () => {
+  const { covers } = await import('../src/covers.js');
+  const books = [{ title: 'A' }, { title: 'B' }, { title: 'C' }];
+  const asked = [];
+  const out = await covers(books, {}, NOW, async (b) => (asked.push(b.title), { url: null, failed: false }), 2);
+  assert.deepEqual(asked, ['A', 'B']);
+  assert.deepEqual(Object.keys(out.cache), ['a|', 'b|']);
 });

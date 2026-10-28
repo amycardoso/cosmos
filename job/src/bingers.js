@@ -241,6 +241,13 @@ export function rhythm(lived, span, { nameOf, statusOf, seasons = {} }) {
   return { perDay, marathons, marathonEpisodes, pace };
 }
 
+// When the first entry was watched, in ms (0 when nothing was).
+export function firstWatched(mirror) {
+  let first = 0;
+  for (const e of Object.values(mirror.entries)) if (e.watched && e.watchedAt && (!first || e.watchedAt < first)) first = e.watchedAt;
+  return first;
+}
+
 export function screens({ mirror, library: lib, seasons }, span) {
   const titles = mirror.titles;
   const byId = new Map(lib.map((t) => [t.id, t]));
@@ -268,7 +275,16 @@ export function screens({ mirror, library: lib, seasons }, span) {
   const hoursByTitle = new Map();
   for (const s of yearSessions) hoursByTitle.set(s.entry.titleId, (hoursByTitle.get(s.entry.titleId) || 0) + s.minutes / 60);
 
-  const shows = Object.entries(seasons).map(([id, s]) => {
+  // Seasons in progress and the queue are how things stand now; a past year has neither.
+  const now = !span.past;
+  // A past year lists the series it held instead, by hours: [title, episodes, hours].
+  const yearSeries = new Map();
+  for (const s of yearSessions) if (s.entry.kind === 'episode') yearSeries.set(s.entry.titleId, (yearSeries.get(s.entry.titleId) || 0) + 1);
+  const series = now ? [] : [...yearSeries]
+    .map(([id, n]) => ({ title: nameOf(id), kind: 'série', hours: round1(hoursByTitle.get(id) || 0), watched: n }))
+    .sort((a, b) => b.hours - a.hours)
+    .slice(0, 8);
+  const shows = Object.entries(now ? seasons : {}).map(([id, s]) => {
     const t = byId.get(id);
     const eps = s.episodes.filter((e) => e.episode > 0).sort((a, b) => a.episode - b.episode);
     const done = eps.filter((e) => e.watched).length;
@@ -283,13 +299,15 @@ export function screens({ mirror, library: lib, seasons }, span) {
     .sort((a, b) => b.start - a.start)
     .map((s) => ({ title: nameOf(s.entry.titleId), kind: 'filme', hours: round1(s.minutes / 60), status: 'watched', rating: s.entry.rating }));
 
-  const watchlist = Object.fromEntries(QUEUE.map((k) => [k, lib.filter((t) => t.status === k).length]));
-  const { perDay, marathons, marathonEpisodes, pace } = rhythm(lived, span, { nameOf, statusOf: (id) => byId.get(id)?.status ?? null, seasons });
+  const watchlist = now ? Object.fromEntries(QUEUE.map((k) => [k, lib.filter((t) => t.status === k).length])) : {};
+  const { perDay, marathons, marathonEpisodes, pace } = now
+    ? rhythm(lived, span, { nameOf, statusOf: (id) => byId.get(id)?.status ?? null, seasons })
+    : rhythm(lived, span, { nameOf, statusOf: () => null });
 
   return {
     watchingDays: minutesPerDay(lived, span),
     watchingClocks: clocks(lived, span),
-    shows: shows.concat(films),
+    shows: shows.concat(series, films),
     watchlist,
     episodesPerDay: perDay,
     marathons,

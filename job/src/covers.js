@@ -61,9 +61,12 @@ export async function lookup(b) {
 // books: [{ title, author, coverUrl? }]; a coverUrl (Skoob's edition) skips the lookup.
 // cache: { key: { url, at } } from the last run.
 // Returns the new cache and the downloaded images, { key: { file, bytes } }.
-export async function covers(books, cache = {}, now = Date.now(), find = lookup) {
+// At most `budget` books are looked up per run, so the first build with every past year's
+// shelf doesn't spend the whole run on catalogues; the rest wait for the next runs.
+export async function covers(books, cache = {}, now = Date.now(), find = lookup, budget = 40) {
   const next = {};
   const images = {};
+  let asked = 0;
   for (const b of books) {
     const key = coverKey(b);
     if (next[key]) continue;
@@ -76,6 +79,10 @@ export async function covers(books, cache = {}, now = Date.now(), find = lookup)
     }
     let hit = cache[key];
     if (!hit || (!hit.url && (hit.v !== VERSION || now - hit.at > RETRY_DAYS * 86400000))) {
+      if (asked++ >= budget) {
+        if (hit) next[key] = hit; // an old miss stays a miss until its turn comes
+        continue;
+      }
       const found = await find(b);
       // A miss because a catalogue errored is not remembered, so the next run asks again.
       hit = found.url || !found.failed ? { url: found.url, at: now, v: VERSION } : null;

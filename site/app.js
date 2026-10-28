@@ -1,6 +1,9 @@
 // Cosmos: renders window.COSMOS_DATA into the page. No framework, no network.
 (function () {
   const D = window.COSMOS_DATA;
+  // An earlier year (?ano=2024) is the whole of that year: no "today", no "now", no week or month.
+  const PAST = D.current === false;
+  const inYear = PAST ? `em ${D.year}` : 'este ano ainda';
   const $ = (s, r = document) => r.querySelector(s);
   // Each page carries only its own sections; a renderer whose host isn't here is skipped.
   const has = (s) => !!document.querySelector(s);
@@ -68,7 +71,8 @@
     const r = range();
     const today = dayDate(N - 1);
     $('[data-title]').innerHTML =
-      period === 'year' ? `${D.year} <span>até ${today.getUTCDate()} de ${MONTHS[today.getUTCMonth()]}</span>`
+      PAST ? `${D.year} <span>o ano inteiro</span>`
+      : period === 'year' ? `${D.year} <span>até ${today.getUTCDate()} de ${MONTHS[today.getUTCMonth()]}</span>`
       : period === 'month' ? 'Últimos 30 dias' : 'Últimos 7 dias';
     const lede = $('[data-lede]');
     if (!lede.children.length) lede.innerHTML = '<b class="r"></b> lendo, <b class="m"></b> ouvindo e <b class="s"></b> de séries e filmes.';
@@ -150,7 +154,7 @@
       }
     }
     // Today carries the planet's spot: deep blue inside a pale ring, as on the planet.
-    const today = svg.querySelector(`[data-i="${N - 1}"]`);
+    const today = !PAST && svg.querySelector(`[data-i="${N - 1}"]`);
     if (today) {
       const k = svg.viewBox.baseVal.width / ($('[data-readout]').clientWidth || 600); // units per screen px
       today.setAttribute('stroke', COLORS.spot);
@@ -430,7 +434,7 @@
   function renderShelf() {
     const host = $('[data-shelf]');
     host.textContent = '';
-    if (!D.books.length) return emptyNote(host, 'Nenhum livro aberto este ano ainda.');
+    if (!D.books.length) return emptyNote(host, `Nenhum livro aberto ${inYear}.`);
     const done = D.books.filter((b) => b.status === 'lido').sort((a, b) => (a.finished || '').localeCompare(b.finished || ''));
     const open = D.books.filter((b) => b.status !== 'lido');
     const maxP = Math.max(1, ...D.books.map((b) => b.pages || 0));
@@ -496,7 +500,8 @@
   const PRINTS_SHOWN = 3;
   function renderPrints() {
     const host = $('[data-prints]');
-    if (!D.fingerprints.length) emptyNote(host, 'Nenhum livro aberto este ano ainda.');
+    // Books from Skoob, before KOReader, have no page-by-page record.
+    if (!D.fingerprints.length) emptyNote(host, D.books.length ? 'Os livros deste ano vieram do Skoob, de antes do e-reader, sem registro página a página.' : `Nenhum livro aberto ${inYear}.`);
     D.fingerprints.forEach((f, idx) => {
       const n = f.mins.length;
       const read = f.mins.filter((m) => m != null);
@@ -556,7 +561,10 @@
       host.append(el('div', { class: 'map__group' }, [el('h4', { text: `${name} · ${books.length}` }), cells]));
     });
     const fin = D.library.filter((b) => b.status === 'finished').length;
-    $('[data-map-line]').textContent = `${plural(D.library.length, 'livro', 'livros')}, ${plural(fin, 'terminado', 'terminados')}, ${plural(Object.keys(groups).length, 'idioma', 'idiomas')}.`;
+    // An earlier year shows the library as it stood when that year ended.
+    $('[data-map-line]').textContent = !D.library.length && PAST
+      ? `O e-reader ainda não guardava estatísticas em ${D.year}.`
+      : `${plural(D.library.length, 'livro', 'livros')}, ${plural(fin, 'terminado', 'terminados')}, ${plural(Object.keys(groups).length, 'idioma', 'idiomas')}${PAST ? ` no fim de ${D.year}` : ''}.`;
     const key = $('[data-map-key]');
     [['finished', 'terminado'], ['reading', 'lendo'], ['on_hold', 'pausado'], ['unread', 'não lido']].filter(([k]) => D.library.some((b) => b.status === k)).forEach(([k, l]) => key.append(el('li', { html: `<i class="st-${k}"></i>${l}` })));
   }
@@ -583,6 +591,20 @@
   // ---------- Screens ----------
   function renderShows() {
     const host = $('[data-shows]');
+    // Seasons in progress are how things stand now; an earlier year shows the series it held, by hours.
+    if (PAST) {
+      const cap = host.closest('.fig').querySelector('figcaption');
+      cap.querySelector('h3').textContent = 'Séries do ano';
+      cap.querySelector('p').textContent = 'As que mais vi no ano, a barra pelas horas.';
+      const series = D.shows.filter((s) => s.kind === 'série');
+      if (!series.length) return emptyNote(host, `Nenhuma série em ${D.year}.`);
+      const max = series[0].hours || 1;
+      return series.forEach((s) => host.append(el('li', {}, [
+        el('span', { html: `<em>${esc(s.title)}</em>` }),
+        el('span', { class: 'meta', text: `${plural(s.watched, 'episódio', 'episódios')} · ${fmtMin(Math.round(s.hours * 60))}` }),
+        el('span', { class: 'eps eps--bar', 'aria-hidden': 'true' }, [el('i', { class: 'on', style: `width:${(s.hours / max) * 100}%` })]),
+      ])));
+    }
     const label = { watch_next: (s) => (s.next ? `próximo: ${s.next}` : 'temporada vista'), collecting_dust: () => 'pegando poeira', caught_up: () => 'em dia', stopped: () => 'desisti' };
     const open = D.shows.filter((s) => label[s.status]);
     if (!open.length) emptyNote(host, 'Nenhuma série em andamento.');
@@ -613,7 +635,8 @@
 
   function renderFilms() {
     const host = $('[data-films]');
-    if (!D.shows.some((s) => s.kind === 'filme')) emptyNote(host, 'Nenhum filme este ano ainda.');
+    if (PAST) host.closest('.fig').querySelector('h3').textContent = 'Filmes do ano';
+    if (!D.shows.some((s) => s.kind === 'filme')) emptyNote(host, `Nenhum filme ${inYear}.`);
     D.shows.filter((s) => s.kind === 'filme').forEach((f) => host.append(el('li', { html: `<em>${esc(f.title)}</em><span>${fmtMin(Math.round(f.hours * 60))}</span>` })));
     const q = $('[data-queue]');
     const names = { watch_next: 'para ver a seguir', collecting_dust: 'pegando poeira', caught_up: 'em dia', completed: 'terminadas', stopped: 'abandonadas' };
@@ -627,14 +650,14 @@
     const total = per.reduce((a, b) => a + b, 0);
     const host = $('[data-mara]'), out = $('[data-mara-readout]');
     if (!total) {
-      $('[data-mara-line]').textContent = 'Nenhum episódio este ano ainda.';
+      $('[data-mara-line]').textContent = `Nenhum episódio ${inYear}.`;
       return;
     }
     const biggest = [...M].sort((a, b) => b[1] - a[1] || b[0] - a[0]);
     const share = Math.round(((D.marathonEpisodes ?? M.reduce((a, m) => a + m[1], 0)) / total) * 100);
     $('[data-mara-line]').innerHTML = M.length
       ? `<b>${plural(M.length, 'maratona', 'maratonas')}</b> no ano, dias com 3 ou mais episódios da mesma série. <b>${share}%</b> dos episódios foram vistos assim. A maior: <b>${plural(biggest[0][1], 'episódio', 'episódios')} de ${esc(biggest[0][2])}</b> em ${dayDate(biggest[0][0]).getUTCDate()} de ${MONTHS[dayDate(biggest[0][0]).getUTCMonth()]}.`
-      : 'Nenhuma maratona este ano: nunca 3 episódios da mesma série num dia.';
+      : `Nenhuma maratona ${PAST ? `em ${D.year}` : 'este ano'}: nunca 3 episódios da mesma série num dia.`;
     const lit = new Map(M.map((m) => [m[0], m]));
     const H = 120, max = Math.max(...per), w = 100 / days;
     const svg = el('svg:svg', { viewBox: `0 0 100 ${H}`, preserveAspectRatio: 'none', role: 'img', 'aria-label': `Episódios por dia em ${D.year}; dias de maratona em destaque` });
@@ -683,7 +706,7 @@
   function renderPace() {
     const host = $('[data-pace]');
     const rows = D.pace || [];
-    if (!rows.length) return emptyNote(host, 'Nenhuma série com mais de um episódio este ano.');
+    if (!rows.length) return emptyNote(host, `Nenhuma série com mais de um episódio ${PAST ? `em ${D.year}` : 'este ano'}.`);
     const days = (D.episodesPerDay || D.readingDays).length;
     const at = (i) => ((i + 0.5) / days) * 100;
     const months = el('span', { class: 'pace__months' });
@@ -828,7 +851,22 @@
     else img.addEventListener('load', start, { once: true });
   }
 
+  // ---------- Year control ----------
+  // One choice per year with data, newest first; links to the other pages keep the year.
+  const YEARS = D.years || [D.year];
+  const thisYear = YEARS[0];
+  const yearHref = (href, y) => href.split('?')[0] + (y === thisYear ? '' : `?ano=${y}`);
+  if (YEARS.length > 1) {
+    const select = el('select', { 'aria-label': 'Ano' }, YEARS.map((y) => el('option', { value: y, text: y })));
+    select.value = D.year;
+    select.addEventListener('change', () => location.assign(yearHref(location.pathname, +select.value)));
+    $('.top').insertBefore(el('label', { class: `year${PAST ? ' year--past' : ''}` }, [select]), $('.period'));
+  }
+  if (PAST) document.querySelectorAll('.brand, .sections a').forEach((a) => a.setAttribute('href', yearHref(a.getAttribute('href'), D.year)));
+
   // ---------- Period control ----------
+  // A whole past year has no last week or month of its own to look at.
+  if (PAST) $('.period').hidden = true;
   const buttons = [...document.querySelectorAll('[data-period]')];
   function setPeriod(p) {
     period = p;
@@ -851,7 +889,7 @@
     });
   });
 
-  if (has('[data-now]')) renderNow();
+  if (has('[data-now]') && !PAST) renderNow();
   spinPlanet();
   if (has('[data-sky]')) renderSky();
   if (has('[data-shelf]')) renderShelf();
@@ -872,7 +910,7 @@
   renderFoot();
   // Small screens open on the month: a whole year of days is too fine to read there.
   picks.forEach((b) => { b.setAttribute('aria-checked', String(b.dataset.show === dayShow)); b.tabIndex = b.dataset.show === dayShow ? 0 : -1; });
-  setPeriod(window.matchMedia('(max-width: 640px)').matches ? 'month' : 'year');
+  setPeriod(!PAST && window.matchMedia('(max-width: 640px)').matches ? 'month' : 'year');
 
   // ---------- Motion and wayfinding ----------
   // Figures below the fold rise in as they reach the screen; the ones already in view stay put.

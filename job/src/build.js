@@ -4,12 +4,12 @@
 // Logs say only which source worked; they never print data. In a public repository
 // the Actions logs are public too.
 import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
-import { yearSpan } from './aggregate.js';
+import { yearSpan, spanOf, yearsSince } from './aggregate.js';
 import { localIso } from './time.js';
 import { store } from './state.js';
-import { fetchStatistics, openStatistics, reading } from './koreader.js';
+import { fetchStatistics, openStatistics, reading, firstRead } from './koreader.js';
 import { fetchSpotify, music } from './spotify.js';
-import { fetchBingers, screens } from './bingers.js';
+import { fetchBingers, screens, firstWatched } from './bingers.js';
 import { covers, coverKey } from './covers.js';
 import { withSkoob } from './skoob.js';
 import { connections } from './connections.js';
@@ -25,9 +25,10 @@ export function fit(arr, days) {
   return arr.length >= days ? arr.slice(0, days) : arr.concat(new Array(days - arr.length).fill(0));
 }
 
+// Each source returns { years: { 2026: data, 2025: data, … } }, one entry per year it has.
 async function source(name, ready, run, state, span) {
   const cached = await state.get(`out-${name}`);
-  const usable = cached && cached.year === span.year ? cached : null;
+  const usable = cached && cached.year === span.year && cached.data?.years ? cached : null;
   if (!ready) {
     console.log(`${name}: no credentials${usable ? ', using the last good read' : ''}`);
     return { data: usable?.data || null, status: 'missing', at: usable?.at || null };
@@ -61,6 +62,7 @@ export function compose({ read, listen, watch }, span, now) {
   return {
     synthetic: false,
     year: span.year,
+    current: !span.past,
     updatedAt: localIso(now),
     sources: {
       reading: { status: read.status, at: read.at },
@@ -108,14 +110,23 @@ async function artistGenres(history, state) {
   }
 }
 
+// Which years are worth a page: the current one always, an earlier one when any source has something in it.
+const worthAPage = (d) => d.current || d.books.length > 0 || d.shows.length > 0 || [d.readingDays, d.listeningDays, d.watchingDays].some((a) => a.some((m) => m > 0));
+
 export async function main() {
   const now = Date.now();
   const span = yearSpan(now);
   const state = store(env);
+  const each = (first, fn) => Object.fromEntries(yearsSince(first, span).map((y) => [y, fn(spanOf(y, now))]));
+
+  // Books finished before KOReader, imported from Skoob by hand, reach back further than the e-reader.
+  const skoob = await state.get('skoob-read');
+  const firstSkoob = Array.isArray(skoob) ? Math.min(...skoob.map((b) => Date.parse(b.finished)).filter(Number.isFinite)) : Infinity;
 
   const read = await source('reading', has('WEBDAV_URL', 'WEBDAV_USER', 'WEBDAV_PASSWORD'), async () => {
     const db = await openStatistics(await fetchStatistics(env));
-    return reading(db, span, now);
+    const first = Math.min(firstRead(db) || Infinity, firstSkoob);
+    return { years: each(first, (s) => withSkoob(reading(db, s, now), skoob, s)) };
   }, state, span);
 
   const listen = await source('music', has('SPOTIFY_CLIENT_ID', 'SPOTIFY_CLIENT_SECRET', 'SPOTIFY_REFRESH_TOKEN'), async () => {
@@ -123,42 +134,50 @@ export async function main() {
     await state.put('spotify-history', history);
     const known = await artistGenres(history, state);
     const genreOf = (a) => family(known[a]?.g);
-    return { ...music(history, nowPlaying, span), archive: archive(history, await state.get('spotify-skips'), span, genreOf) };
+    return {
+      years: each(history[0]?.at, (s) => music(history, nowPlaying, s)),
+      archive: archive(history, await state.get('spotify-skips'), span, genreOf),
+    };
   }, state, span);
 
   const watch = await source('screens', has('BINGERS_TOKEN'), async () => {
     const fetched = await fetchBingers(env, await state.get('bingers-mirror'));
     await state.put('bingers-mirror', fetched.mirror);
-    return screens(fetched, span);
+    return { years: each(firstWatched(fetched.mirror), (s) => screens(fetched, s)) };
   }, state, span);
 
-  // Books finished this year before KOReader, imported from Skoob by hand.
-  if (read.data) read.data = withSkoob(read.data, await state.get('skoob-read'), span);
+  const years = [...new Set([read, listen, watch].flatMap((x) => Object.keys(x.data?.years || {}).map(Number)).concat(span.year))].sort((a, b) => b - a);
+  const pick = (x, y) => ({ ...x, data: x.data?.years?.[y] || null });
+  const pages = years
+    .map((y) => compose({ read: pick(read, y), listen: pick(listen, y), watch: pick(watch, y) }, spanOf(y, now), now))
+    .filter(worthAPage);
+  for (const d of pages) d.years = pages.map((p) => p.year);
 
-  const data = compose({ read, listen, watch }, span, now);
   await rm('dist', { recursive: true, force: true });
   await cp('site', 'dist', { recursive: true });
   await mkdir('dist/data', { recursive: true });
 
   // Covers are a nicety: when the lookup fails the books keep their plain spines.
-  if (data.books.length) {
+  const books = pages.flatMap((d) => d.books);
+  if (books.length) {
     try {
-      const found = await covers(data.books, (await state.get('covers')) || {}, now);
+      const found = await covers(books, (await state.get('covers')) || {}, now);
       await state.put('covers', found.cache);
       await mkdir('dist/covers', { recursive: true });
       for (const { file, bytes } of Object.values(found.images)) await writeFile(`dist/${file}`, bytes);
-      for (const b of [...data.books, ...data.fingerprints]) b.cover = found.images[coverKey(b)]?.file || null;
-      console.log(`covers: ${Object.keys(found.images).length} of ${data.books.length}`);
+      for (const b of [...books, ...pages.flatMap((d) => d.fingerprints)]) b.cover = found.images[coverKey(b)]?.file || null;
+      console.log(`covers: ${Object.keys(found.images).length} of ${books.length}`);
     } catch (err) {
       console.log(`covers: failed (${err.message})`);
     }
   }
   // The page shows the copies served from the site, never a catalogue's address.
-  for (const b of data.books) delete b.coverUrl;
-  await writeFile('dist/data/cosmos.js', `window.COSMOS_DATA = ${JSON.stringify(data)};\n`);
+  for (const b of books) delete b.coverUrl;
+  // The current year is data/cosmos.js; each earlier one, data/cosmos-2024.js, loaded with ?ano=2024.
+  for (const d of pages) await writeFile(`dist/data/cosmos${d.current ? '' : `-${d.year}`}.js`, `window.COSMOS_DATA = ${JSON.stringify(d)};\n`);
   // The long view of the music page, in its own file so only that page loads it.
   await writeFile('dist/data/archive.js', `window.COSMOS_ARCHIVE = ${JSON.stringify(listen.data?.archive || null)};\n`);
-  console.log('dist/ ready');
+  console.log(`dist/ ready, ${pages.length} years`);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
