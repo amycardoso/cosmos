@@ -84,6 +84,7 @@ export function compose({ read, listen, watch }, span, now) {
     watchlist: s.watchlist || {},
     episodesPerDay: fit(s.episodesPerDay, span.days),
     marathons: s.marathons || [],
+    marathonEpisodes: s.marathonEpisodes ?? null,
     pace: s.pace || [],
     connections: connections({ books: r.timeline, plays: m.timeline, watched: s.timeline, since: m.historySince ?? null }, span),
     periods,

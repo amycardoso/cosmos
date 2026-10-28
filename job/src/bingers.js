@@ -216,9 +216,15 @@ export function rhythm(lived, span, { nameOf, statusOf, seasons = {} }) {
     days.set(i, (days.get(i) || 0) + 1);
     byShowDay.set(s.entry.titleId, days);
   }
+  // One row per marathon day, named for its biggest show; every show that reached the mark counts toward the share.
   const best = new Map();
+  let marathonEpisodes = 0;
   for (const [id, days] of byShowDay) {
-    for (const [i, n] of days) if (n >= MARATHON && !(best.get(i)?.[1] >= n)) best.set(i, [i, n, nameOf(id)]);
+    for (const [i, n] of days) {
+      if (n < MARATHON) continue;
+      marathonEpisodes += n;
+      if (!(best.get(i)?.[1] >= n)) best.set(i, [i, n, nameOf(id)]);
+    }
   }
   const marathons = [...best.values()].sort((a, b) => a[0] - b[0]);
   const pace = [...byShowDay]
@@ -232,7 +238,7 @@ export function rhythm(lived, span, { nameOf, statusOf, seasons = {} }) {
     .filter((p) => p.episodes > 1)
     .sort((a, b) => b.last - a.last)
     .slice(0, PACE_ROWS);
-  return { perDay, marathons, pace };
+  return { perDay, marathons, marathonEpisodes, pace };
 }
 
 export function screens({ mirror, library: lib, seasons }, span) {
@@ -278,7 +284,7 @@ export function screens({ mirror, library: lib, seasons }, span) {
     .map((s) => ({ title: nameOf(s.entry.titleId), kind: 'filme', hours: round1(s.minutes / 60), status: 'watched', rating: s.entry.rating }));
 
   const watchlist = Object.fromEntries(QUEUE.map((k) => [k, lib.filter((t) => t.status === k).length]));
-  const { perDay, marathons, pace } = rhythm(lived, span, { nameOf, statusOf: (id) => byId.get(id)?.status ?? null, seasons });
+  const { perDay, marathons, marathonEpisodes, pace } = rhythm(lived, span, { nameOf, statusOf: (id) => byId.get(id)?.status ?? null, seasons });
 
   return {
     watchingDays: minutesPerDay(lived, span),
@@ -287,6 +293,7 @@ export function screens({ mirror, library: lib, seasons }, span) {
     watchlist,
     episodesPerDay: perDay,
     marathons,
+    marathonEpisodes,
     pace,
     // For the connections only: [watched at, minutes, title, kind]. The site never receives it.
     timeline: yearSessions.filter((s) => !marked.has(s)).map((s) => [s.start, Math.round(s.minutes), nameOf(s.entry.titleId), s.entry.kind]),

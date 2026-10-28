@@ -187,6 +187,7 @@ test('screens: marathons and the pace of each show, backlogs left out', () => {
   const s = screens({ mirror, library, seasons }, span);
   const mar14 = dayIndex('2026-03-14', 2026); // 00:30Z on the 15th is still the 14th in São Paulo
   assert.deepEqual(s.marathons, [[mar14, 3, 'Dark']]);
+  assert.equal(s.marathonEpisodes, 3);
   assert.equal(s.episodesPerDay[mar14], 3);
   assert.equal(s.episodesPerDay[dayIndex('2026-06-01', 2026)], 0);
   assert.deepEqual(s.pace.map((p) => [p.title, p.status, p.episodes, p.last - p.first]), [['Pachinko', 'stopped', 2, 7], ['Dark', 'completed', 4, 6]]);

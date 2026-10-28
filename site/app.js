@@ -631,7 +631,7 @@
       return;
     }
     const biggest = [...M].sort((a, b) => b[1] - a[1] || b[0] - a[0]);
-    const share = Math.round((M.reduce((a, m) => a + m[1], 0) / total) * 100);
+    const share = Math.round(((D.marathonEpisodes ?? M.reduce((a, m) => a + m[1], 0)) / total) * 100);
     $('[data-mara-line]').innerHTML = M.length
       ? `<b>${plural(M.length, 'maratona', 'maratonas')}</b> no ano, dias com 3 ou mais episódios da mesma série. <b>${share}%</b> dos episódios foram vistos assim. A maior: <b>${plural(biggest[0][1], 'episódio', 'episódios')} de ${esc(biggest[0][2])}</b> em ${dayDate(biggest[0][0]).getUTCDate()} de ${MONTHS[dayDate(biggest[0][0]).getUTCMonth()]}.`
       : 'Nenhuma maratona este ano: nunca 3 episódios da mesma série num dia.';
@@ -652,14 +652,27 @@
     }
     const notes = $('[data-mara-notes]');
     biggest.slice(0, 3).forEach((m) => notes.append(el('span', { style: `left:${at(m[0])}%;bottom:${(per[m[0]] / max) * 100 + 4}%`, html: `<b>${m[1]}</b> ${esc(m[2])}` })));
-    const idle = 'Passe o dedo ou o mouse para ver cada dia.';
+    const idle = 'Passe o dedo ou o mouse para ver cada dia, ou use as setas.';
     out.textContent = idle;
-    svg.addEventListener('pointermove', (e) => {
-      const r = svg.getBoundingClientRect();
-      const i = Math.max(0, Math.min(days - 1, Math.floor(((e.clientX - r.left) / r.width) * days)));
+    const showDay = (i) => {
       const m = lit.get(i), d = dayDate(i), when = `${d.getUTCDate()} de ${MONTHS[d.getUTCMonth()]}`;
       out.innerHTML = per[i] ? `${when}: <b>${plural(per[i], 'episódio', 'episódios')}</b>${m ? `, maratona de <span class="screen">${esc(m[2])}</span>` : ''}` : `${when}: nenhum episódio`;
+    };
+    svg.addEventListener('pointermove', (e) => {
+      const r = svg.getBoundingClientRect();
+      showDay(Math.max(0, Math.min(days - 1, Math.floor(((e.clientX - r.left) / r.width) * days))));
     });
+    // Keyboard: the arrows walk the days, Home and End jump to the ends; the readout is announced.
+    let cursor = days - 1;
+    svg.setAttribute('tabindex', '0');
+    svg.addEventListener('keydown', (e) => {
+      const step = { ArrowRight: 1, ArrowLeft: -1, Home: -days, End: days }[e.key];
+      if (!step) return;
+      e.preventDefault();
+      cursor = Math.max(0, Math.min(days - 1, cursor + step));
+      showDay(cursor);
+    });
+    svg.addEventListener('blur', () => { out.textContent = idle; });
     svg.addEventListener('pointerleave', () => { out.textContent = idle; });
     const list = $('[data-mara-list]');
     biggest.slice(0, 5).forEach((m) => list.append(el('li', { html: `<span class="d">${dayDate(m[0]).getUTCDate()} ${MON[dayDate(m[0]).getUTCMonth()]}</span><span class="t">${esc(m[2])}</span><span class="n">${m[1]} ep.</span>` })));
@@ -681,14 +694,19 @@
     host.append(el('li', { class: 'pace__axis', 'aria-hidden': 'true' }, [el('span'), months, el('span')]));
     rows.forEach((p) => {
       const span = p.last - p.first + 1;
-      const kind = p.status === 'stopped' ? 'parei' : p.episodes / span >= 0.8 ? 'maratona' : p.episodes / (span / 7) <= 1.3 ? 'semanal' : 'aos poucos';
+      // Weekly: about a week between viewing days, an episode or two each time.
+      const gap = p.days.length > 1 ? (p.last - p.first) / (p.days.length - 1) : 0;
+      const weekly = gap >= 5 && gap <= 10 && p.days.every(([, n]) => n <= 2);
+      const kind = p.status === 'stopped' ? 'parei' : p.episodes / span >= 0.8 ? 'maratona' : weekly ? 'semanal' : 'aos poucos';
       const open = ['watch_next', 'caught_up', 'collecting_dust'].includes(p.status);
-      const left = p.left == null ? '' : p.status === 'stopped' ? ` · faltavam ${p.left} na T${p.season}` : open && p.left ? ` · faltam ${p.left} na T${p.season}` : '';
-      const track = el('span', { class: 'pace__track' }, [el('span', { class: 'pace__span', style: `left:${at(p.first)}%;width:${Math.max(0.4, ((p.last - p.first) / days) * 100)}%` })]);
+      const season = esc(p.season);
+      const left = p.left == null ? '' : p.status === 'stopped' ? ` · faltavam ${p.left} na T${season}` : open && p.left ? ` · faltam ${p.left} na T${season}` : '';
+      const said = p.days.map(([i, n]) => `${dayDate(i).getUTCDate()} ${MON[dayDate(i).getUTCMonth()]}: ${n}`).join('; ');
+      const track = el('span', { class: 'pace__track', role: 'img', 'aria-label': `Episódios por dia: ${said}` }, [el('span', { class: 'pace__span', style: `left:${at(p.first)}%;width:${Math.max(0.4, ((p.last - p.first) / days) * 100)}%` })]);
       p.days.forEach(([i, n]) => track.append(el('i', { style: `left:${at(i)}%;height:${Math.min(100, 30 + n * 10)}%` })));
       if (open && p.left) track.append(el('span', { class: 'pace__open', style: `left:${at(p.last)}%` }));
       host.append(el('li', { class: `pace__row${p.status === 'stopped' ? ' stopped' : ''}` }, [
-        el('span', { class: 'pace__name', html: `${esc(p.title)}${p.season != null ? ` <small>T${p.season}</small>` : ''}` }),
+        el('span', { class: 'pace__name', html: `${esc(p.title)}${p.season != null ? ` <small>T${season}</small>` : ''}` }),
         track,
         el('span', { class: 'pace__meta', html: `<b>${span === 1 ? `${p.episodes} ep. num dia` : `${p.episodes} ep. em ${span} dias`}</b><small><em class="${kind.replace(' ', '-')}">${kind}</em>${left}</small>` }),
       ]));
