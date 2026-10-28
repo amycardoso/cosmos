@@ -620,6 +620,81 @@
     Object.entries(D.watchlist).forEach(([k, v]) => q.append(el('li', { html: `<b>${v}</b>${names[k]}` })));
   }
 
+  // Marathons: episodes per day across the year, the days with 3+ episodes of one show lit.
+  // marathons: [day, episodes, show]. The three biggest carry a label; the rest are read on hover.
+  function renderMarathons() {
+    const per = D.episodesPerDay || [], days = per.length, M = D.marathons || [];
+    const total = per.reduce((a, b) => a + b, 0);
+    const host = $('[data-mara]'), out = $('[data-mara-readout]');
+    if (!total) {
+      $('[data-mara-line]').textContent = 'Nenhum episódio este ano ainda.';
+      return;
+    }
+    const biggest = [...M].sort((a, b) => b[1] - a[1] || b[0] - a[0]);
+    const share = Math.round((M.reduce((a, m) => a + m[1], 0) / total) * 100);
+    $('[data-mara-line]').innerHTML = M.length
+      ? `<b>${plural(M.length, 'maratona', 'maratonas')}</b> no ano, dias com 3 ou mais episódios da mesma série. <b>${share}%</b> dos episódios foram vistos assim. A maior: <b>${plural(biggest[0][1], 'episódio', 'episódios')} de ${esc(biggest[0][2])}</b> em ${dayDate(biggest[0][0]).getUTCDate()} de ${MONTHS[dayDate(biggest[0][0]).getUTCMonth()]}.`
+      : 'Nenhuma maratona este ano: nunca 3 episódios da mesma série num dia.';
+    const lit = new Map(M.map((m) => [m[0], m]));
+    const H = 120, max = Math.max(...per), w = 100 / days;
+    const svg = el('svg:svg', { viewBox: `0 0 100 ${H}`, preserveAspectRatio: 'none', role: 'img', 'aria-label': `Episódios por dia em ${D.year}; dias de maratona em destaque` });
+    per.forEach((n, i) => {
+      if (!n) return;
+      const h = Math.max(3, (n / max) * (H - 4));
+      svg.append(el('svg:rect', { x: (i * w).toFixed(3), y: H - h, width: (w * 0.72).toFixed(3), height: h, class: lit.has(i) ? 'lit' : '' }));
+    });
+    host.append(svg);
+    const at = (i) => ((i + 0.5) / days) * 100;
+    const months = $('[data-mara-months]');
+    for (let m = 0; m < 12; m++) {
+      const i = Math.round((Date.UTC(D.year, m, 1) - START) / 86400000);
+      if (i < days) months.append(el('span', { style: `left:${at(i)}%`, text: MON[m] }));
+    }
+    const notes = $('[data-mara-notes]');
+    biggest.slice(0, 3).forEach((m) => notes.append(el('span', { style: `left:${at(m[0])}%;bottom:${(per[m[0]] / max) * 100 + 4}%`, html: `<b>${m[1]}</b> ${esc(m[2])}` })));
+    const idle = 'Passe o dedo ou o mouse para ver cada dia.';
+    out.textContent = idle;
+    svg.addEventListener('pointermove', (e) => {
+      const r = svg.getBoundingClientRect();
+      const i = Math.max(0, Math.min(days - 1, Math.floor(((e.clientX - r.left) / r.width) * days)));
+      const m = lit.get(i), d = dayDate(i), when = `${d.getUTCDate()} de ${MONTHS[d.getUTCMonth()]}`;
+      out.innerHTML = per[i] ? `${when}: <b>${plural(per[i], 'episódio', 'episódios')}</b>${m ? `, maratona de <span class="screen">${esc(m[2])}</span>` : ''}` : `${when}: nenhum episódio`;
+    });
+    svg.addEventListener('pointerleave', () => { out.textContent = idle; });
+    const list = $('[data-mara-list]');
+    biggest.slice(0, 5).forEach((m) => list.append(el('li', { html: `<span class="d">${dayDate(m[0]).getUTCDate()} ${MON[dayDate(m[0]).getUTCMonth()]}</span><span class="t">${esc(m[2])}</span><span class="n">${m[1]} ep.</span>` })));
+  }
+
+  // Pace: each show on the same year axis, from its first to its last episode, a tick per day watched.
+  // A show is a marathon when it averaged close to an episode a day, weekly at about one a week.
+  function renderPace() {
+    const host = $('[data-pace]');
+    const rows = D.pace || [];
+    if (!rows.length) return emptyNote(host, 'Nenhuma série com mais de um episódio este ano.');
+    const days = (D.episodesPerDay || D.readingDays).length;
+    const at = (i) => ((i + 0.5) / days) * 100;
+    const months = el('span', { class: 'pace__months' });
+    for (let m = 0; m < 12; m++) {
+      const i = Math.round((Date.UTC(D.year, m, 1) - START) / 86400000);
+      if (i < days) months.append(el('span', { style: `left:${at(i)}%`, text: MON[m] }));
+    }
+    host.append(el('li', { class: 'pace__axis', 'aria-hidden': 'true' }, [el('span'), months, el('span')]));
+    rows.forEach((p) => {
+      const span = p.last - p.first + 1;
+      const kind = p.status === 'stopped' ? 'parei' : p.episodes / span >= 0.8 ? 'maratona' : p.episodes / (span / 7) <= 1.3 ? 'semanal' : 'aos poucos';
+      const open = ['watch_next', 'caught_up', 'collecting_dust'].includes(p.status);
+      const left = p.left == null ? '' : p.status === 'stopped' ? ` · faltavam ${p.left} na T${p.season}` : open && p.left ? ` · faltam ${p.left} na T${p.season}` : '';
+      const track = el('span', { class: 'pace__track' }, [el('span', { class: 'pace__span', style: `left:${at(p.first)}%;width:${Math.max(0.4, ((p.last - p.first) / days) * 100)}%` })]);
+      p.days.forEach(([i, n]) => track.append(el('i', { style: `left:${at(i)}%;height:${Math.min(100, 30 + n * 10)}%` })));
+      if (open && p.left) track.append(el('span', { class: 'pace__open', style: `left:${at(p.last)}%` }));
+      host.append(el('li', { class: `pace__row${p.status === 'stopped' ? ' stopped' : ''}` }, [
+        el('span', { class: 'pace__name', html: `${esc(p.title)}${p.season != null ? ` <small>T${p.season}</small>` : ''}` }),
+        track,
+        el('span', { class: 'pace__meta', html: `<b>${span === 1 ? `${p.episodes} ep. num dia` : `${p.episodes} ep. em ${span} dias`}</b><small><em class="${kind.replace(' ', '-')}">${kind}</em>${left}</small>` }),
+      ]));
+    });
+  }
+
   function renderFoot() {
     const [d, t] = D.updatedAt.split('T');
     const [, m, day] = d.split('-').map(Number);
@@ -774,6 +849,8 @@
   if (has('[data-map]')) renderMap();
   if (has('[data-shows]')) renderShows();
   if (has('[data-films]')) renderFilms();
+  if (has('[data-mara]')) renderMarathons();
+  if (has('[data-pace]')) renderPace();
   renderFoot();
   // Small screens open on the month: a whole year of days is too fine to read there.
   picks.forEach((b) => { b.setAttribute('aria-checked', String(b.dataset.show === dayShow)); b.tabIndex = b.dataset.show === dayShow ? 0 : -1; });

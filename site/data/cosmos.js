@@ -259,3 +259,31 @@
   });
   D.connections = { stars: [...stars.values()], links, soundtracks };
 })();
+
+// Fifth pass: marathons and the pace of each show, as the job computes them from episode
+// check-ins. Synthetic, written by hand so each kind of pace shows.
+(function () {
+  const D = window.COSMOS_DATA;
+  const days = D.watchingDays.length;
+  const day = (m, d) => Math.round((Date.UTC(D.year, m - 1, d) - Date.UTC(D.year, 0, 1)) / 86400000);
+  const runs = (from, counts) => counts.map((n, k) => [from + k, n]).filter(([, n]) => n > 0);
+  const weekly = (from, n) => Array.from({ length: n }, (_, k) => [from + k * 7, 1]);
+  const shows = [
+    { title: 'Dark', status: 'stopped', season: 2, left: 5, days: runs(day(1, 4), [3, 5, 0, 0, 0, 3, 4]).concat(runs(day(1, 24), [2, 0, 2])) },
+    { title: 'Shōgun', status: 'completed', season: 1, left: 0, days: runs(day(3, 13), [1, 5, 0, 3, 0, 0, 1]) },
+    { title: 'Ruptura', status: 'collecting_dust', season: 2, left: 6, days: weekly(day(5, 2), 4) },
+    { title: 'Arcane', status: 'caught_up', season: 2, left: 0, days: runs(day(8, 15), [3, 6]) },
+    { title: 'The Bear', status: 'watch_next', season: 3, left: 3, days: weekly(day(9, 1), 5).concat([[day(10, 13), 2]]) },
+  ];
+  D.episodesPerDay = new Array(days).fill(0);
+  for (let i = 0; i < days; i++) if ((i * 37) % 11 < 3) D.episodesPerDay[i] = 1;
+  const best = new Map();
+  for (const s of shows) for (const [i, n] of s.days) {
+    D.episodesPerDay[i] += n;
+    if (n >= 3 && !(best.get(i)?.[1] >= n)) best.set(i, [i, n, s.title]);
+  }
+  D.marathons = [...best.values()].sort((a, b) => a[0] - b[0]);
+  D.pace = shows
+    .map((s) => ({ ...s, first: s.days[0][0], last: s.days[s.days.length - 1][0], episodes: s.days.reduce((a, [, n]) => a + n, 0) }))
+    .sort((a, b) => b.last - a.last);
+})();

@@ -5,11 +5,14 @@
 // Field names follow the developer guide; where the guide does not spell a field out,
 // the readers below accept the likely spellings. `npm run probe` prints the real keys.
 import { minutesPerDay, clocks, inPeriod, PERIOD_DAYS, round1 } from './aggregate.js';
+import { local, dayIndex } from './time.js';
 
 const API = 'https://api.bingers.app/v1';
 const EPISODE_MINUTES = 45; // used only when Bingers sends no runtime
 const MOVIE_MINUTES = 110;
 const BACKFILL_MINUTES = 360; // a burst of check-ins longer than this was marked after the fact
+const MARATHON = 3; // episodes of one show in one day
+const PACE_ROWS = 12;
 
 // Retry-After is either seconds or an HTTP date; wait 5 s when it is missing, never over a minute.
 function retryAfter(value) {
@@ -198,6 +201,40 @@ export function backfill(sessions) {
   return out;
 }
 
+// Marathons and pace, from the episodes she lived this year (backlogs ticked off at once left out).
+// perDay counts episodes per day; a marathon is a day with MARATHON or more of one show.
+// Each show's pace is its days with episodes, from the first to the last this year.
+export function rhythm(lived, span, { nameOf, statusOf, seasons = {} }) {
+  const perDay = new Array(span.days).fill(0);
+  const byShowDay = new Map();
+  for (const s of lived) {
+    if (s.entry.kind !== 'episode') continue;
+    const i = dayIndex(local(s.start).date, span.year);
+    if (i < 0 || i >= span.days) continue;
+    perDay[i]++;
+    const days = byShowDay.get(s.entry.titleId) || new Map();
+    days.set(i, (days.get(i) || 0) + 1);
+    byShowDay.set(s.entry.titleId, days);
+  }
+  const best = new Map();
+  for (const [id, days] of byShowDay) {
+    for (const [i, n] of days) if (n >= MARATHON && !(best.get(i)?.[1] >= n)) best.set(i, [i, n, nameOf(id)]);
+  }
+  const marathons = [...best.values()].sort((a, b) => a[0] - b[0]);
+  const pace = [...byShowDay]
+    .map(([id, days]) => {
+      const list = [...days].sort((a, b) => a[0] - b[0]);
+      const first = list[0][0], last = list[list.length - 1][0];
+      const s = seasons[id];
+      const left = s ? s.episodes.filter((e) => e.episode > 0 && !e.watched).length : null;
+      return { title: nameOf(id), status: statusOf(id), first, last, episodes: list.reduce((a, [, n]) => a + n, 0), days: list, season: s?.season ?? null, left };
+    })
+    .filter((p) => p.episodes > 1)
+    .sort((a, b) => b.last - a.last)
+    .slice(0, PACE_ROWS);
+  return { perDay, marathons, pace };
+}
+
 export function screens({ mirror, library: lib, seasons }, span) {
   const titles = mirror.titles;
   const byId = new Map(lib.map((t) => [t.id, t]));
@@ -241,12 +278,16 @@ export function screens({ mirror, library: lib, seasons }, span) {
     .map((s) => ({ title: nameOf(s.entry.titleId), kind: 'filme', hours: round1(s.minutes / 60), status: 'watched', rating: s.entry.rating }));
 
   const watchlist = Object.fromEntries(QUEUE.map((k) => [k, lib.filter((t) => t.status === k).length]));
+  const { perDay, marathons, pace } = rhythm(lived, span, { nameOf, statusOf: (id) => byId.get(id)?.status ?? null, seasons });
 
   return {
     watchingDays: minutesPerDay(lived, span),
     watchingClocks: clocks(lived, span),
     shows: shows.concat(films),
     watchlist,
+    episodesPerDay: perDay,
+    marathons,
+    pace,
     // For the connections only: [watched at, minutes, title, kind]. The site never receives it.
     timeline: yearSessions.filter((s) => !marked.has(s)).map((s) => [s.start, Math.round(s.minutes), nameOf(s.entry.titleId), s.entry.kind]),
     periods: { year: { feelings: feelings(null) }, month: { feelings: feelings(PERIOD_DAYS.month) }, week: { feelings: feelings(PERIOD_DAYS.week) } },
