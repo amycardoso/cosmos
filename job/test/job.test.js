@@ -166,6 +166,34 @@ test('screens: hours, shows in progress, films, feelings and queue', () => {
   assert.equal(s.watchingDays[dayIndex('2026-10-19', 2026)], 30);
 });
 
+test('screens: marathons and the pace of each show, backlogs left out', () => {
+  const ep = (id, title, at) => normEntry({ entity_kind: 'episode', entity_id: id, title_id: title, watched: true, plays: 1, last_watched_at: at });
+  const entries = [
+    // Three episodes of Dark on one evening: a marathon.
+    ep('d1', 'dark', '2026-03-14T22:00:00Z'), ep('d2', 'dark', '2026-03-14T23:00:00Z'), ep('d3', 'dark', '2026-03-15T00:30:00Z'),
+    ep('d4', 'dark', '2026-03-20T22:00:00Z'),
+    // A weekly show, never three in a day.
+    ep('p1', 'pach', '2026-05-01T23:00:00Z'), ep('p2', 'pach', '2026-05-08T23:00:00Z'),
+    // A whole season ticked off in a minute: not a marathon.
+    ...Array.from({ length: 15 }, (_, i) => ep(`b${i}`, 'bear', `2026-06-01T12:00:${String(i).padStart(2, '0')}Z`)),
+  ];
+  const mirror = { entries: Object.fromEntries(entries.map((e) => [e.id, e])), titles: {} };
+  const library = [
+    { id: 'dark', name: 'Dark', kind: 'show', status: 'completed', minutes: 55 },
+    { id: 'pach', name: 'Pachinko', kind: 'show', status: 'stopped', minutes: 55 },
+    { id: 'bear', name: 'The Bear', kind: 'show', status: 'completed', minutes: 30 },
+  ];
+  const seasons = { pach: { season: 2, episodes: Array.from({ length: 8 }, (_, i) => ({ episode: i + 1, watched: i < 2 })) } };
+  const s = screens({ mirror, library, seasons }, span);
+  const mar14 = dayIndex('2026-03-14', 2026); // 00:30Z on the 15th is still the 14th in São Paulo
+  assert.deepEqual(s.marathons, [[mar14, 3, 'Dark']]);
+  assert.equal(s.marathonEpisodes, 3);
+  assert.equal(s.episodesPerDay[mar14], 3);
+  assert.equal(s.episodesPerDay[dayIndex('2026-06-01', 2026)], 0);
+  assert.deepEqual(s.pace.map((p) => [p.title, p.status, p.episodes, p.last - p.first]), [['Pachinko', 'stopped', 2, 7], ['Dark', 'completed', 4, 6]]);
+  assert.deepEqual([s.pace[0].season, s.pace[0].left], [2, 6]);
+});
+
 test('compose pads cached day arrays and survives a missing source', () => {
   assert.deepEqual(fit([1, 2], 4), [1, 2, 0, 0]);
   const d = compose({ read: { data: { readingDays: [5] }, status: 'failed', at: 1 }, listen: { data: null, status: 'missing' }, watch: { data: null, status: 'missing' } }, span, NOW);
