@@ -47,8 +47,6 @@ const HISTORY = `query($owner: String!, $name: String!, $author: ID!, $since: Gi
 
 export const hidden = (env) => new Set(String(env.COSMOS_GITHUB_HIDE || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean));
 
-const HOUR = 3600000;
-
 // One year as raw material: each of her projects with the hours she committed in, each hour
 // once (rounded down), so neither exact times nor a count of commits is ever kept.
 // `complete` is false when a repository couldn't be read, so the year is read again next run.
@@ -75,7 +73,11 @@ async function readYear(env, who, year, nowMs) {
         const h = (await gql(env, HISTORY, { owner: r.owner.login, name: r.name, author: who.id, since, until, after }))
           .repository?.defaultBranchRef?.target?.history;
         if (!h) break;
-        for (const n of h.nodes) times.push(Math.floor(Date.parse(n.authoredDate) / HOUR) * HOUR);
+        for (const n of h.nodes) {
+          // Start of her local hour (not the UTC one, which is off for half-hour zones).
+          const t = Math.floor(Date.parse(n.authoredDate) / 60000) * 60000;
+          times.push(t - local(t).minute * 60000);
+        }
         after = h.pageInfo.hasNextPage ? h.pageInfo.endCursor : null;
       } while (after);
     } catch {
@@ -88,21 +90,22 @@ async function readYear(env, who, year, nowMs) {
 }
 
 // Past years don't change, so each is read once and kept; the current year is read every run.
-// cache: { [year]: { at, repos } }. Returns { years: { [year]: repos }, cache }.
+// cache: { [year]: { at, hide, repos } }. Returns { years: { [year]: repos }, cache }.
+// A year read under another COSMOS_GITHUB_HIDE is read again, so an unhidden project comes back.
 export async function fetchGitHub(env, cache = {}, nowMs = Date.now()) {
   const who = (await gql(env, VIEWER)).viewer;
+  const hide = hidden(env);
+  const hideKey = [...hide].sort().join(',');
   const current = Number(local(nowMs).date.slice(0, 4));
   const years = {};
   const next = {};
   for (const y of who.contributionsCollection.contributionYears) {
-    const done = cache[y] && cache[y].at > Date.UTC(y + 1, 0, 2) && y < current;
+    const done = cache[y] && cache[y].at > Date.UTC(y + 1, 0, 2) && y < current && (cache[y].hide || '') === hideKey;
     const read = done ? { repos: cache[y].repos, complete: true } : await readYear(env, who, y, nowMs);
     // A year with a repository that failed to read is kept for now but never counted as done.
-    next[y] = { at: done ? cache[y].at : read.complete ? nowMs : 0, repos: read.repos };
+    next[y] = { at: done ? cache[y].at : read.complete ? nowMs : 0, hide: hideKey, repos: read.repos };
     years[y] = read.repos;
   }
-  // A hidden repository leaves cached years too.
-  const hide = hidden(env);
   for (const y in years) years[y] = years[y].filter((r) => !hide.has(r.name.toLowerCase()));
   return { years, cache: next };
 }

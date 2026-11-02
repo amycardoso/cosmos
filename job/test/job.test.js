@@ -520,6 +520,7 @@ test('compose carries code and its period clocks', async () => {
 
 test('github: keeps each hour once, and a year with a failed repository is read again', async () => {
   const { fetchGitHub } = await import('../src/github.js');
+  let brokenReads = 0;
   const real = globalThis.fetch;
   const reply = (data) => ({ ok: true, status: 200, json: async () => ({ data }) });
   globalThis.fetch = async (url, { body }) => {
@@ -529,7 +530,7 @@ test('github: keeps each hour once, and a year with a failed repository is read 
       const repo = (name, owner = 'amycardoso') => ({ repository: { name, owner: { login: owner }, primaryLanguage: { name: 'Lua' }, defaultBranchRef: { name: 'main' } } });
       return reply({ viewer: { contributionsCollection: { commitContributionsByRepository: [repo('reading-atlas'), repo('broken'), repo('work', 'someorg')] } } });
     }
-    if (variables.name === 'broken') return { ok: false, status: 500, json: async () => ({}) };
+    if (variables.name === 'broken') { brokenReads += 1; return { ok: false, status: 500, json: async () => ({}) }; }
     return reply({ repository: { defaultBranchRef: { target: { history: { pageInfo: { hasNextPage: false }, nodes: [
       { authoredDate: '2025-05-01T22:10:00Z' }, { authoredDate: '2025-05-01T22:50:00Z' }, { authoredDate: '2025-05-02T10:05:00Z' },
     ] } } } } });
@@ -539,6 +540,17 @@ test('github: keeps each hour once, and a year with a failed repository is read 
     assert.deepEqual(got.years[2025].map((r) => r.name), ['reading-atlas']);
     assert.deepEqual(got.years[2025][0].times, [Date.parse('2025-05-01T22:00:00Z'), Date.parse('2025-05-02T10:00:00Z')]);
     assert.equal(got.cache[2025].at, 0); // 'broken' failed, so 2025 isn't done
+    const again = await fetchGitHub({ COSMOS_GITHUB_TOKEN: 'x' }, got.cache, NOW);
+    assert.equal(brokenReads, 2, 'the failed year is read again');
+    assert.deepEqual(again.years[2025].map((r) => r.name), ['reading-atlas']);
+    // A done year is kept, unless it was read under another hide list.
+    const done = { 2025: { ...again.cache[2025], at: NOW } };
+    const reads = brokenReads;
+    await fetchGitHub({ COSMOS_GITHUB_TOKEN: 'x' }, done, NOW);
+    assert.equal(brokenReads, reads);
+    const hid = await fetchGitHub({ COSMOS_GITHUB_TOKEN: 'x', COSMOS_GITHUB_HIDE: 'Reading-Atlas' }, done, NOW);
+    assert.equal(brokenReads, reads + 1, 'another hide list reads the year again');
+    assert.deepEqual(hid.years[2025], []);
   } finally {
     globalThis.fetch = real;
   }
