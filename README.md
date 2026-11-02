@@ -19,9 +19,10 @@ Every three hours, `.github/workflows/deploy.yml` runs `npm run build`, which:
 1. downloads KOReader's `statistics.sqlite3` from WebDAV (KOReader's own statistics cloud sync puts it there) and turns it into the Reading Atlas views: time per day, the hours grid, the shelf, the library by language and each book's fingerprint. Covers come from Open Library (Google Books as a fallback), downloaded at build time and served from the site itself;
 2. asks Spotify for the latest plays and adds them to a history the job keeps, because Spotify only remembers the last 50;
 3. mirrors the Bingers library through `/v1/entries` and its change cursor, plus the library and the season of each show in progress;
-4. crosses the three timelines: what played on Spotify while each book was open, how much of each book was read in silence, and which shows shared their weeks with a book. Only those links reach the site, never the raw plays or sessions;
-5. sums up the whole Spotify history for the music page's "Dez anos" (artists year by year, genres, obsessions, skips, this day in past years, first listens). Genres come from MusicBrainz, since Spotify no longer fills them in for most artists: each run looks up about 50 more artists, most listened first, and keeps the answers;
-6. writes `dist/` with the real data in `dist/data/cosmos.js` (and the music page's long view in `dist/data/archive.js`), and deploys it to Cloudflare Pages.
+4. reads my own GitHub repositories through the GraphQL API (`contributionsCollection`, then each repository's history): only the days and hours I committed, which project and its language. No commit messages, no code, no counts of commits or pull requests, and nothing from organisations. Past years are read once and kept;
+5. crosses the three timelines: what played on Spotify while each book was open, how much of each book was read in silence, and which shows shared their weeks with a book. Only those links reach the site, never the raw plays or sessions;
+6. sums up the whole Spotify history for the music page's "Dez anos" (artists year by year, genres, obsessions, skips, this day in past years, first listens). Genres come from MusicBrainz, since Spotify no longer fills them in for most artists: each run looks up about 50 more artists, most listened first, and keeps the answers;
+7. writes `dist/` with the real data in `dist/data/cosmos.js` (and the music page's long view in `dist/data/archive.js`), and deploys it to Cloudflare Pages.
 
 If one source fails, the site keeps that source's last good read and says so in the footer.
 
@@ -67,9 +68,10 @@ The repository is public; the data is not.
 1. **Cloudflare.** Create a Pages project named `cosmos` (Direct Upload), a KV namespace, and an API token with *Cloudflare Pages: Edit* and *Workers KV Storage: Edit*. In Zero Trust, add an Access application for the Pages domain that allows only my email.
 2. **Spotify.** Create an app at developer.spotify.com with the redirect URI `http://127.0.0.1:8888/callback`, then run `SPOTIFY_CLIENT_ID=… SPOTIFY_CLIENT_SECRET=… npm run spotify-auth` on my own computer to get the refresh token.
 3. **Bingers.** Create a read-only personal token at bingers.app/integrations (Legend plan).
-4. **KOReader.** Turn on cloud sync in the statistics plugin, pointing to a WebDAV folder. The URL secret is the full path of `statistics.sqlite3` in that folder.
-5. **GitHub secrets.** `WEBDAV_URL`, `WEBDAV_USER`, `WEBDAV_PASSWORD`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_REFRESH_TOKEN`, `BINGERS_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `COSMOS_KV_NAMESPACE`. If the Pages project has another name, set the repository variable `COSMOS_PAGES_PROJECT`.
-6. Run **Probe sources** once from the Actions tab. It prints only the shape of each API response, never values, so the readers can be checked against the real APIs. Then run **Build and deploy**.
+4. **GitHub.** Create a fine-grained personal token with read-only *Contents* on all my repositories. To leave a repository out of the Código page, list it in the repository variable `COSMOS_GITHUB_HIDE` (comma separated).
+5. **KOReader.** Turn on cloud sync in the statistics plugin, pointing to a WebDAV folder. The URL secret is the full path of `statistics.sqlite3` in that folder.
+6. **GitHub secrets.** `WEBDAV_URL`, `WEBDAV_USER`, `WEBDAV_PASSWORD`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_REFRESH_TOKEN`, `BINGERS_TOKEN`, `COSMOS_GITHUB_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `COSMOS_KV_NAMESPACE`. If the Pages project has another name, set the repository variable `COSMOS_PAGES_PROJECT`.
+7. Run **Probe sources** once from the Actions tab. It prints only the shape of each API response, never values, so the readers can be checked against the real APIs. Then run **Build and deploy**.
 
 ## Develop
 

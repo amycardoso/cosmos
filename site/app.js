@@ -24,7 +24,7 @@
   const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
   const emptyNote = (host, text) => host.append(el('p', { class: 'empty', text }));
 
-  const COLORS = { read: '#F2A8C7', music: '#84CDEE', screen: '#B5A2EC', deep: '#111019', pole: '#A86A4E', spot: '#3948CF' };
+  const COLORS = { read: '#F2A8C7', music: '#84CDEE', screen: '#B5A2EC', code: '#EBD199', deep: '#111019', pole: '#A86A4E', spot: '#3948CF' };
   const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
   const mix = (a, b, t) => '#' + hex(a).map((v, i) => Math.round(v + (hex(b)[i] - v) * t).toString(16).padStart(2, '0')).join('');
   const RAMP = (c) => [COLORS.deep, mix(COLORS.deep, c, 0.3), mix(COLORS.deep, c, 0.52), mix(COLORS.deep, c, 0.76), c];
@@ -59,6 +59,15 @@
     { key: 'screen', name: 'Telas', verb: 'de séries e filmes', days: D.watchingDays },
   ];
   STREAMS.forEach((s) => (s.qs = quartiles(s.days)));
+  // Code is a fourth belt, counted in days, not hours: when, never how much.
+  const codeDays = (r) => D.codingDays ? D.codingDays.slice(r[0], r[1]).filter((v) => v > 0).length : 0;
+  const CODE_ON = (D.codingDays || []).some((v) => v > 0);
+  const CODE = { key: 'code', name: 'Código', days: D.codingDays || [], total: (r) => plural(codeDays(r), 'dia', 'dias') };
+  CODE.qs = quartiles(CODE.days);
+  const projectsOn = new Map(); // day index -> projects she touched that day
+  (D.code?.projects || []).forEach((p) => p.days.forEach((i) => projectsOn.set(i, (projectsOn.get(i) || []).concat(p.name))));
+  const BANDS = () => STREAMS.concat(CODE_ON ? [CODE] : []).filter((s) => has(`[data-band="${s.key}"]`));
+  const bandTotal = (s, r) => (s.total ? s.total(r) : fmtMin(sum(s.days, r)));
 
   const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const PERIODS = { week: 7, month: 30, year: N };
@@ -75,12 +84,22 @@
       : period === 'year' ? `${D.year} <span>até ${today.getUTCDate()} de ${MONTHS[today.getUTCMonth()]}</span>`
       : period === 'month' ? 'Últimos 30 dias' : 'Últimos 7 dias';
     const lede = $('[data-lede]');
-    if (!lede.children.length) lede.innerHTML = '<b class="r"></b> lendo, <b class="m"></b> ouvindo e <b class="s"></b> de séries e filmes.';
+    if (!lede.children.length) {
+      lede.innerHTML = CODE_ON
+        ? '<b class="r"></b> lendo, <b class="m"></b> ouvindo, <b class="s"></b> de séries e filmes e <b class="c"></b> criando.'
+        : '<b class="r"></b> lendo, <b class="m"></b> ouvindo e <b class="s"></b> de séries e filmes.';
+    }
     STREAMS.forEach((s, k) => countTo(lede.children[k], sum(s.days, r)));
+    if (CODE_ON) lede.children[3].textContent = CODE.total(r);
+    renderBands();
+  }
 
+  function renderBands() {
+    const r = range();
+    if (!CODE_ON) $('[data-band="code"]')?.remove();
     const months = $('[data-months]');
     months.textContent = '';
-    STREAMS.forEach((s) => renderBand(s, r));
+    BANDS().forEach((s) => renderBand(s, r));
     if (period === 'year') {
       const offset = dayDate(0).getUTCDay();
       for (let m = 0; m < 12; m++) {
@@ -90,7 +109,9 @@
     } else {
       months.append(el('span', { text: fmtDay(r[0]), style: 'left:0' }), el('span', { text: 'hoje', style: 'right:0' }));
     }
-    $('[data-readout]').textContent = 'Passe o dedo ou o mouse pelas faixas para ver os três hábitos de cada dia.';
+    $('[data-readout]').textContent = BANDS().length > 1
+      ? `Passe o dedo ou o mouse pelas faixas para ver os ${BANDS().length === 4 ? 'quatro' : 'três'} hábitos de cada dia.`
+      : 'Passe o dedo ou o mouse pela faixa para ver em que eu mexi em cada dia.';
     hit = null;
   }
 
@@ -114,20 +135,24 @@
   function highlightDay(i) {
     if (i === hit) return;
     hit = i;
-    STREAMS.forEach((s) => {
+    const bands = BANDS();
+    bands.forEach((s) => {
       s.svg?.querySelector('rect.hit')?.classList.remove('hit');
       s.svg?.querySelector(`[data-i="${i}"]`)?.classList.add('hit');
     });
-    const v = (s) => (s.days[i] ? fmtMin(s.days[i]) : 'nada');
-    $('[data-readout]').innerHTML = `<b>${fmtDay(i)}</b> · ${STREAMS.map((s) => `<span class="${s.key}">${s.name.toLowerCase()} ${v(s)}</span>`).join(' · ')}`;
+    const made = (projectsOn.get(i) || []).map(esc).join(', ');
+    const v = (s) => (s.key === 'code' ? made || 'nada' : s.days[i] ? fmtMin(s.days[i]) : 'nada');
+    $('[data-readout]').innerHTML = bands.length === 1
+      ? `<b>${fmtDay(i)}</b> · ${made ? `mexi em <span class="code">${made}</span>` : 'nenhum projeto'}`
+      : `<b>${fmtDay(i)}</b> · ${bands.map((s) => `<span class="${s.key}">${s.name.toLowerCase()} ${v(s)}</span>`).join(' · ')}`;
   }
 
   function renderBand(s, [from, to]) {
     const host = $(`[data-band="${s.key}"]`);
     host.textContent = '';
     const ramp = RAMP(COLORS[s.key]);
-    const total = sum(s.days, [from, to]);
-    host.append(el('p', { class: 'band__label', html: `<b>${s.name}</b><small>${fmtMin(total)}</small>` }));
+    const total = bandTotal(s, [from, to]);
+    host.append(el('p', { class: 'band__label', html: `<b>${s.name}</b><small>${total}</small>` }));
     const cell = 12, gap = 3;
     let svg;
     if (period === 'year') {
@@ -167,11 +192,11 @@
     if (!REDUCED) {
       const rects = [...svg.querySelectorAll('rect[data-i]')];
       // Like the day moving across the planet, each belt a beat behind the one above.
-      const row = STREAMS.indexOf(s);
+      const row = BANDS().indexOf(s);
       rects.forEach((rc) => rc.animate([{ opacity: 0.15 }, { opacity: 1 }], { duration: 560, delay: Math.round((+rc.getAttribute('x') / svg.viewBox.baseVal.width) * 520) + row * 80, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' }));
     }
     svg.setAttribute('role', 'img');
-    svg.setAttribute('aria-label', `${s.name}: ${fmtMin(total)} no período, dia a dia.`);
+    svg.setAttribute('aria-label', `${s.name}: ${total} no período, dia a dia.`);
     const show = (e) => {
       const i = e.target.getAttribute && e.target.getAttribute('data-i');
       if (i === null || i === '' || i === undefined) return;
@@ -209,7 +234,16 @@
       const when = t.playing ? 'Tocando agora' : `Tocou às ${clockTime(t.playedAt)}`;
       host.append(li(COLORS.music, `${when}: <em>${esc(t.title)}</em><small>${esc(t.artist)}${t.album ? ', ' + esc(t.album) : ''}</small>`));
     }
+    const made = D.code?.recent;
+    if (made) host.append(li(COLORS.code, `Mexendo em <em>${esc(made.name)}</em><small>${made.lang ? esc(made.lang) + ' · ' : ''}${whenMade(made.at)}</small>`));
     if (next) host.append(li(COLORS.screen, `Próximo: ${esc(next.next)} de <em>${esc(next.title)}</em><small>${next.watched} de ${next.episodes} episódios da temporada</small><span class="meter" style="color:${COLORS.screen}"><span style="width:${(next.watched / Math.max(1, next.episodes)) * 100}%"></span></span>`));
+  }
+
+  // "hoje às 22h01", "ontem às 9h40" or "3 de outubro", in the viewer's own clock.
+  function whenMade(v) {
+    const d = new Date(v), now = new Date();
+    const days = Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate()) - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 86400000);
+    return days === 0 ? `hoje às ${clockTime(v)}` : days === 1 ? `ontem às ${clockTime(v)}` : `${d.getDate()} de ${MONTHS[d.getMonth()]}`;
   }
 
   // "22h01" from an ISO string or a timestamp, in the viewer's own clock.
@@ -229,6 +263,8 @@
     const counted = since > 0 && r[0] < since ? ` (contando desde ${fmtDay(since)})` : '';
     line('music', `${fmtMin(sum(D.listeningDays, r))} ${label}${counted}.${topArtist ? ` Quem mais tocou: ${topArtist.name}.` : ''}`);
     line('screen', `${fmtMin(sum(D.watchingDays, r))} ${label}. ${plural(films, 'filme', 'filmes')} no ano.`);
+    const projects = D.code?.projects || [];
+    line('code', `Criei em ${CODE.total(r)} ${label}. ${plural(projects.length, 'projeto meu', 'projetos meus')} no ano.`);
   }
 
   // ---------- Hour x weekday, the three habits together ----------
@@ -736,11 +772,97 @@
     });
   }
 
+  // ---------- Code ----------
+  // Each of her projects on the same year axis, a cell per week, brighter the more days she came back.
+  function renderProjects() {
+    const host = $('[data-projects]');
+    const rows = D.code?.projects || [];
+    if (!rows.length) return emptyNote(host, `Nenhum projeto meu ${PAST ? `em ${D.year}` : 'este ano ainda'}.`);
+    const offset = dayDate(0).getUTCDay();
+    const days = D.codingDays.length;
+    const weeks = Math.floor((days - 1 + offset) / 7) + 1;
+    const all = 53;
+    const ramp = RAMP(COLORS.code);
+    const months = el('span', { class: 'proj__months' });
+    for (let m = 0; m < 12; m += 3) {
+      const i = Math.round((Date.UTC(D.year, m, 1) - START) / 86400000);
+      months.append(el('span', { style: `left:${(Math.floor((i + offset) / 7) / all) * 100}%`, text: MON[m] }));
+    }
+    host.append(el('li', { class: 'proj__axis', 'aria-hidden': 'true' }, [el('span'), months, el('span', { text: 'dias' })]));
+    rows.forEach((p) => {
+      const per = new Array(weeks).fill(0);
+      p.days.forEach((i) => per[Math.floor((i + offset) / 7)]++);
+      const svg = el('svg:svg', { viewBox: `0 0 ${all * 6 - 1} 14`, preserveAspectRatio: 'none', role: 'img', 'aria-label': `${p.name}: ${plural(p.days.length, 'dia', 'dias')}, de ${fmtDay(p.days[0])} a ${fmtDay(p.days[p.days.length - 1])}.` });
+      per.forEach((n, w) => svg.append(el('svg:rect', { x: w * 6, y: 1, width: 5, height: 12, rx: 1, fill: ramp[Math.min(4, n)] })));
+      host.append(el('li', { class: 'proj__row' }, [
+        el('span', { class: 'proj__name', html: `${esc(p.name)}${p.lang ? `<small>${esc(p.lang)}</small>` : ''}` }),
+        svg,
+        el('span', { class: 'proj__days', text: p.days.length }),
+      ]));
+    });
+  }
+
+  // Languages: each project's language, weighed by the days spent in it.
+  function renderLangs() {
+    const list = $('[data-langs]');
+    const langs = D.code?.languages || [];
+    if (!langs.length) { $('[data-lang-bar]').remove(); return emptyNote(list, 'Nenhuma língua ainda.'); }
+    const total = langs.reduce((t, l) => t + l.days, 0);
+    const shade = (k) => mix(COLORS.deep, COLORS.code, [1, 0.78, 0.6, 0.46, 0.34, 0.26, 0.2][k] ?? 0.16);
+    const bar = $('[data-lang-bar]');
+    langs.forEach((l, k) => {
+      const share = Math.round((l.days / total) * 100);
+      bar.append(el('i', { style: `flex:${l.days};background:${shade(k)}`, title: `${l.name}, ${share}%` }));
+      list.append(el('li', { html: `<i style="background:${shade(k)}" aria-hidden="true"></i><span>${esc(l.name)}</span><span>${share}%</span>` }));
+    });
+  }
+
+  // Hours of the week she makes things in, on her own quartile ramp.
+  function renderCodeHours() {
+    const host = $('[data-code-hours]');
+    host.textContent = '';
+    const grid = D.periods[period].codingClock || D.codingClock;
+    const clean = grid.map((row) => row.map((v) => (v < 0.1 ? 0 : v)));
+    const qs = quartiles(clean.flat());
+    const lv = clean.map((row) => row.map((v) => level(v, qs)));
+    const ramp = RAMP(COLORS.code);
+    const small = window.matchMedia('(max-width: 640px)').matches;
+    const cw = small ? 12 : 22, ch = small ? 16 : 22, gap = small ? 2 : 4, left = small ? 30 : 40, top = 22;
+    const svg = el('svg:svg', { viewBox: `0 0 ${left + 24 * (cw + gap)} ${top + 7 * (ch + gap)}`, role: 'img' });
+    [0, 6, 12, 18].forEach((h) => svg.append(el('svg:text', { x: left + h * (cw + gap), y: 12, text: `${h}h` })));
+    const readout = $('[data-code-readout]');
+    for (let d = 0; d < 7; d++) {
+      svg.append(el('svg:text', { x: 0, y: top + d * (ch + gap) + ch - 4, text: DOW[d], style: small ? 'font-size:11px' : '' }));
+      for (let h = 0; h < 24; h++) {
+        const r = el('svg:rect', { x: left + h * (cw + gap), y: top + d * (ch + gap), width: cw, height: ch, rx: 2, fill: ramp[lv[d][h]], 'data-d': d, 'data-h': h });
+        if (!REDUCED) r.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 420, delay: h * 22 + d * 6, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' });
+        svg.append(r);
+      }
+    }
+    readout.textContent = 'Passe pela grade para ver uma hora da semana.';
+    const show = (e) => {
+      const t = e.target.closest && e.target.closest('rect[data-d]');
+      if (!t) return;
+      svg.querySelector('.hit')?.classList.remove('hit');
+      t.classList.add('hit');
+      readout.innerHTML = `<b>${DOW[t.dataset.d]}, ${t.dataset.h}h</b> · <span class="code">${LEVEL_WORDS[lv[t.dataset.d][t.dataset.h]]}</span>`;
+    };
+    svg.addEventListener('pointermove', show);
+    svg.addEventListener('pointerdown', show);
+    host.append(svg);
+    let best = [0, 0, 0];
+    clean.forEach((row, d) => row.forEach((v, h) => { if (v > best[2]) best = [d, h, v]; }));
+    const line = best[2] > 0 ? `Crio mais ${DOW_LONG[best[0]]}, por volta das ${best[1]}h.` : 'Nenhum projeto no período.';
+    $('[data-code-peak]').textContent = line;
+    svg.setAttribute('aria-label', `As horas da semana em que mexo nos meus projetos. ${line}`);
+  }
+
   function renderFoot() {
     const [d, t] = D.updatedAt.split('T');
     const [, m, day] = d.split('-').map(Number);
     const src = D.sources;
-    const stale = src ? Object.entries({ reading: 'leitura', music: 'música', screens: 'séries e filmes' }).filter(([k]) => src[k] && src[k].status !== 'ok').map(([, v]) => v) : [];
+    // Code only counts as stale once it has a token: until then it simply isn't there.
+    const stale = src ? Object.entries({ reading: 'leitura', music: 'música', screens: 'séries e filmes', code: 'código' }).filter(([k]) => src[k] && src[k].status !== 'ok' && !(k === 'code' && src[k].status === 'missing')).map(([, v]) => v) : [];
     $('[data-sources]').textContent = D.synthetic
       ? 'Dados de exemplo, no formato que o job gera.'
       : stale.length ? `Sem atualização desta vez: ${stale.join(', ')}. Mostrando a última leitura que deu certo.` : '';
@@ -872,6 +994,8 @@
     period = p;
     buttons.forEach((b) => { b.setAttribute('aria-checked', String(b.dataset.period === p)); b.tabIndex = b.dataset.period === p ? 0 : -1; });
     if (has('[data-title]')) renderOverview();
+    else if (has('[data-band]')) renderBands();
+    if (has('[data-code-hours]')) renderCodeHours();
     renderLines(range());
     if (has('[data-day]')) renderDay();
     if (has('[data-tracks]')) renderTracks();
@@ -907,6 +1031,8 @@
   if (has('[data-films]')) renderFilms();
   if (has('[data-mara]')) renderMarathons();
   if (has('[data-pace]')) renderPace();
+  if (has('[data-projects]')) renderProjects();
+  if (has('[data-langs]')) renderLangs();
   renderFoot();
   // Small screens open on the month: a whole year of days is too fine to read there.
   picks.forEach((b) => { b.setAttribute('aria-checked', String(b.dataset.show === dayShow)); b.tabIndex = b.dataset.show === dayShow ? 0 : -1; });
