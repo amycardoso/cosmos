@@ -133,10 +133,12 @@ export function code(years, span) {
   // An hour with a commit counts once, whatever the number of commits in it.
   const slots = new Map(); // 'YYYY-MM-DD h' -> start ms
   const projects = [];
+  const timeline = []; // [hour start, project], for the connections only; the site never receives it
   let recent = null;
   for (const r of repos.values()) {
     const days = new Set();
     for (const t of new Set(r.times)) {
+      timeline.push([t, r.name]);
       days.add(dayIndex(local(t).date, span.year));
       const key = slot(t);
       if (!slots.has(key)) slots.set(key, t);
@@ -161,5 +163,6 @@ export function code(years, span) {
     projects,
     languages,
     recent: span.past || !recent ? null : { ...recent, at: new Date(recent.at).toISOString() },
+    timeline: timeline.sort((a, b) => a[0] - b[0]),
   };
 }

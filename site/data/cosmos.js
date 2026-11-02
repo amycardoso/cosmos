@@ -332,3 +332,21 @@
     recent: { name: 'cosmos', lang: 'JavaScript', at: '2026-10-19T21:12:00-03:00' },
   };
 })();
+
+// Seventh pass: what played in the hours she made each project, for the connections.
+(function () {
+  const D = window.COSMOS_DATA;
+  const C = D.connections;
+  const during = [['cosmos', 'Björk', 180], ['cosmos', 'Lô Borges', 60], ['reading-atlas', 'Radiohead', 120], ['creative-coding', 'Caetano Veloso', 90], ['creative-coding', 'Milton Nascimento', 50]];
+  for (const [name, artist, minutes] of during) {
+    const p = D.code.projects.find((x) => x.name === name);
+    const id = `project:${name}`;
+    if (!C.stars.some((s) => s.id === id)) C.stars.push({ id, kind: 'project', name, hours: 0, days: p.days.length });
+    const a = `artist:${artist}`;
+    if (!C.stars.some((s) => s.id === a)) C.stars.push({ id: a, kind: 'artist', name: artist, hours: 5 });
+    C.links.push({ a: id, b: a, minutes, how: 'during' });
+  }
+  for (const [name, show, n] of [['cosmos', 'show:Ruptura', 2], ['reading-atlas', 'show:Dark', 1], ['creative-coding', 'film:Perfect Days', 1]]) {
+    if (C.stars.some((s) => s.id === show)) C.links.push({ a: `project:${name}`, b: show, weeks: n, how: 'weeks' });
+  }
+})();
