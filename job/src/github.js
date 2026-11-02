@@ -47,7 +47,11 @@ const HISTORY = `query($owner: String!, $name: String!, $author: ID!, $since: Gi
 
 export const hidden = (env) => new Set(String(env.COSMOS_GITHUB_HIDE || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean));
 
-// One year as raw material: each of her projects with the times she committed to it.
+const HOUR = 3600000;
+
+// One year as raw material: each of her projects with the hours she committed in, each hour
+// once (rounded down), so neither exact times nor a count of commits is ever kept.
+// `complete` is false when a repository couldn't be read, so the year is read again next run.
 // GitHub caps a contributions window at a year, so the window is the UTC year; a commit
 // late on 31 December in São Paulo is still found through its repository's history.
 async function readYear(env, who, year, nowMs) {
@@ -61,6 +65,7 @@ async function readYear(env, who, year, nowMs) {
   const since = new Date(Date.UTC(year, 0, 1) - 86400000).toISOString();
   const until = new Date(Math.min(nowMs, Date.UTC(year + 1, 0, 2))).toISOString();
   const out = [];
+  let complete = true;
   for (const r of repos) {
     const times = [];
     let after = null;
@@ -70,15 +75,16 @@ async function readYear(env, who, year, nowMs) {
         const h = (await gql(env, HISTORY, { owner: r.owner.login, name: r.name, author: who.id, since, until, after }))
           .repository?.defaultBranchRef?.target?.history;
         if (!h) break;
-        for (const n of h.nodes) times.push(Date.parse(n.authoredDate));
+        for (const n of h.nodes) times.push(Math.floor(Date.parse(n.authoredDate) / HOUR) * HOUR);
         after = h.pageInfo.hasNextPage ? h.pageInfo.endCursor : null;
       } while (after);
     } catch {
+      complete = false;
       continue;
     }
-    if (times.length) out.push({ name: r.name, lang: r.primaryLanguage?.name || null, times: times.sort((a, b) => a - b) });
+    if (times.length) out.push({ name: r.name, lang: r.primaryLanguage?.name || null, times: [...new Set(times)].sort((a, b) => a - b) });
   }
-  return out;
+  return { repos: out, complete };
 }
 
 // Past years don't change, so each is read once and kept; the current year is read every run.
@@ -90,9 +96,10 @@ export async function fetchGitHub(env, cache = {}, nowMs = Date.now()) {
   const next = {};
   for (const y of who.contributionsCollection.contributionYears) {
     const done = cache[y] && cache[y].at > Date.UTC(y + 1, 0, 2) && y < current;
-    const repos = done ? cache[y].repos : await readYear(env, who, y, nowMs);
-    next[y] = { at: done ? cache[y].at : nowMs, repos };
-    years[y] = repos;
+    const read = done ? { repos: cache[y].repos, complete: true } : await readYear(env, who, y, nowMs);
+    // A year with a repository that failed to read is kept for now but never counted as done.
+    next[y] = { at: done ? cache[y].at : read.complete ? nowMs : 0, repos: read.repos };
+    years[y] = read.repos;
   }
   // A hidden repository leaves cached years too.
   const hide = hidden(env);

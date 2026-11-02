@@ -239,11 +239,12 @@
     if (next) host.append(li(COLORS.screen, `Próximo: ${esc(next.next)} de <em>${esc(next.title)}</em><small>${next.watched} de ${next.episodes} episódios da temporada</small><span class="meter" style="color:${COLORS.screen}"><span style="width:${(next.watched / Math.max(1, next.episodes)) * 100}%"></span></span>`));
   }
 
-  // "hoje às 22h01", "ontem às 9h40" or "3 de outubro", in the viewer's own clock.
+  // "hoje por volta das 22h", "ontem por volta das 9h" or "3 de outubro", in the viewer's own clock.
+  // The job keeps only the hour of a commit, never the minute.
   function whenMade(v) {
     const d = new Date(v), now = new Date();
     const days = Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate()) - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 86400000);
-    return days === 0 ? `hoje às ${clockTime(v)}` : days === 1 ? `ontem às ${clockTime(v)}` : `${d.getDate()} de ${MONTHS[d.getMonth()]}`;
+    return days === 0 ? `hoje por volta das ${d.getHours()}h` : days === 1 ? `ontem por volta das ${d.getHours()}h` : `${d.getDate()} de ${MONTHS[d.getMonth()]}`;
   }
 
   // "22h01" from an ISO string or a timestamp, in the viewer's own clock.
@@ -781,7 +782,7 @@
     const offset = dayDate(0).getUTCDay();
     const days = D.codingDays.length;
     const weeks = Math.floor((days - 1 + offset) / 7) + 1;
-    const all = 53;
+    const all = Math.max(53, weeks); // a leap year starting on Saturday needs 54
     const ramp = RAMP(COLORS.code);
     const months = el('span', { class: 'proj__months' });
     for (let m = 0; m < 12; m += 3) {
@@ -861,8 +862,8 @@
     const [d, t] = D.updatedAt.split('T');
     const [, m, day] = d.split('-').map(Number);
     const src = D.sources;
-    // Code only counts as stale once it has a token: until then it simply isn't there.
-    const stale = src ? Object.entries({ reading: 'leitura', music: 'música', screens: 'séries e filmes', code: 'código' }).filter(([k]) => src[k] && src[k].status !== 'ok' && !(k === 'code' && src[k].status === 'missing')).map(([, v]) => v) : [];
+    // Code only counts as stale when there is an earlier read to show: before that it simply isn't there.
+    const stale = src ? Object.entries({ reading: 'leitura', music: 'música', screens: 'séries e filmes', code: 'código' }).filter(([k]) => src[k] && src[k].status !== 'ok' && !(k === 'code' && (src[k].status === 'missing' || !CODE_ON))).map(([, v]) => v) : [];
     $('[data-sources]').textContent = D.synthetic
       ? 'Dados de exemplo, no formato que o job gera.'
       : stale.length ? `Sem atualização desta vez: ${stale.join(', ')}. Mostrando a última leitura que deu certo.` : '';

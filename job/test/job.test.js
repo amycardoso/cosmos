@@ -517,3 +517,29 @@ test('compose carries code and its period clocks', async () => {
   assert.equal(none.sources.code.status, 'missing');
   assert.deepEqual(none.code.projects, []);
 });
+
+test('github: keeps each hour once, and a year with a failed repository is read again', async () => {
+  const { fetchGitHub } = await import('../src/github.js');
+  const real = globalThis.fetch;
+  const reply = (data) => ({ ok: true, status: 200, json: async () => ({ data }) });
+  globalThis.fetch = async (url, { body }) => {
+    const { query, variables } = JSON.parse(body);
+    if (query.includes('contributionYears')) return reply({ viewer: { id: 'U', login: 'amycardoso', contributionsCollection: { contributionYears: [2025] } } });
+    if (query.includes('commitContributionsByRepository')) {
+      const repo = (name, owner = 'amycardoso') => ({ repository: { name, owner: { login: owner }, primaryLanguage: { name: 'Lua' }, defaultBranchRef: { name: 'main' } } });
+      return reply({ viewer: { contributionsCollection: { commitContributionsByRepository: [repo('reading-atlas'), repo('broken'), repo('work', 'someorg')] } } });
+    }
+    if (variables.name === 'broken') return { ok: false, status: 500, json: async () => ({}) };
+    return reply({ repository: { defaultBranchRef: { target: { history: { pageInfo: { hasNextPage: false }, nodes: [
+      { authoredDate: '2025-05-01T22:10:00Z' }, { authoredDate: '2025-05-01T22:50:00Z' }, { authoredDate: '2025-05-02T10:05:00Z' },
+    ] } } } } });
+  };
+  try {
+    const got = await fetchGitHub({ COSMOS_GITHUB_TOKEN: 'x' }, {}, NOW);
+    assert.deepEqual(got.years[2025].map((r) => r.name), ['reading-atlas']);
+    assert.deepEqual(got.years[2025][0].times, [Date.parse('2025-05-01T22:00:00Z'), Date.parse('2025-05-02T10:00:00Z')]);
+    assert.equal(got.cache[2025].at, 0); // 'broken' failed, so 2025 isn't done
+  } finally {
+    globalThis.fetch = real;
+  }
+});

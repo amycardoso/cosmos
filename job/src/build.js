@@ -157,9 +157,12 @@ export async function main() {
   const create = await source('code', has('COSMOS_GITHUB_TOKEN'), async () => {
     const fetched = await fetchGitHub(env, (await state.get('github-years')) || {}, now);
     await state.put('github-years', fetched.cache);
-    const first = Math.min(...Object.keys(fetched.years).map(Number));
-    return { years: each(Number.isFinite(first) ? Date.UTC(first, 0, 2) : now, (s) => code(fetched.years, s)) };
+    // The first local year comes from the earliest commit: a UTC year can start on her 31 December.
+    const first = Object.values(fetched.years).flat().reduce((m, r) => Math.min(m, r.times[0] ?? Infinity), Infinity);
+    return { hide: env.COSMOS_GITHUB_HIDE || '', years: each(Number.isFinite(first) ? first : now, (s) => code(fetched.years, s)) };
   }, state, span);
+  // A last good read made before a repository was hidden would still show it.
+  if (create.data && (create.data.hide || '') !== (env.COSMOS_GITHUB_HIDE || '')) create.data = null;
 
   const years = [...new Set([read, listen, watch, create].flatMap((x) => Object.keys(x.data?.years || {}).map(Number)).concat(span.year))].sort((a, b) => b - a);
   const pick = (x, y) => ({ ...x, data: x.data?.years?.[y] || null });
