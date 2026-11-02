@@ -429,8 +429,20 @@
     svg.addEventListener('pointerleave', () => focusStar(null));
     host.append(svg);
 
+    const fig = host.closest('.sky-fig');
+    function light(x) {
+      if (!fig) return;
+      fig.classList.toggle('lit', !!x);
+      if (!x) return;
+      // Place the glow on the star, in the pseudo-element's own box (it reaches 40px above the figure).
+      const f = fig.getBoundingClientRect(), c = x.g.children[1].getBoundingClientRect();
+      fig.style.setProperty('--glow-x', `${c.left + c.width / 2 - f.left}px`);
+      fig.style.setProperty('--glow-y', `${c.top + c.height / 2 - f.top + 40}px`);
+      fig.style.setProperty('--glow-r', `${110 + c.width * 2.5}px`);
+    }
     function focusStar(x) {
       svg.classList.toggle('focus', !!x);
+      light(x);
       if (!x) { readout.textContent = 'Toque numa estrela para ver a constelação dela.'; return; }
       const mine = links.filter((l) => l.a === x || l.b === x);
       const near = new Set([x, ...mine.map((l) => (l.a === x ? l.b : l.a))]);
