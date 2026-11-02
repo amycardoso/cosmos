@@ -401,6 +401,24 @@ test('connections: an artist heard for a few seconds is not part of the soundtra
   assert.deepEqual(c.soundtracks.Duna.artists, []);
 });
 
+test('connections: what played in the hours she made a project', async () => {
+  const { connections } = await import('../src/connections.js');
+  const t = (iso) => Date.parse(iso);
+  const c = connections({
+    coding: [[t('2026-10-10T01:00:00Z'), 'cosmos'], [t('2026-10-11T22:00:00Z'), 'cosmos'], [t('2026-10-12T15:00:00Z'), 'quiet']],
+    plays: [
+      [t('2026-10-10T01:20:00Z'), 20 * 60000, 'Björk'], // whole play inside the hour
+      [t('2026-10-11T22:05:00Z'), 10 * 60000, 'Björk'], // five of its minutes fall in the hour
+      [t('2026-10-12T17:00:00Z'), 30 * 60000, 'Low'], // after 'quiet''s hour, so no link
+    ],
+    since: t('2026-01-01T00:00:00Z'),
+  }, span);
+  const p = c.stars.find((x) => x.id === 'project:cosmos');
+  assert.deepEqual([p.kind, p.days], ['project', 2]);
+  assert.deepEqual(c.links, [{ a: 'project:cosmos', b: 'artist:Björk', minutes: 25, how: 'during' }]);
+  assert.ok(!c.stars.some((x) => x.name === 'quiet'), 'a project with no music has no star');
+});
+
 test('Retry-After is read as seconds or a date, and ignored when past or unreadable', () => {
   const now = Date.parse('2026-10-25T12:00:00Z');
   assert.equal(retryAfter('5', now), 5000);

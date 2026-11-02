@@ -95,7 +95,7 @@ export function compose({ read, listen, watch, create = {} }, span, now) {
     marathonEpisodes: s.marathonEpisodes ?? null,
     pace: s.pace || [],
     code: { projects: c.projects || [], languages: c.languages || [], recent: c.recent || null },
-    connections: connections({ books: r.timeline, plays: m.timeline, watched: s.timeline, since: m.historySince ?? null }, span),
+    connections: connections({ books: r.timeline, plays: m.timeline, watched: s.timeline, coding: c.timeline, since: m.historySince ?? null }, span),
     periods,
   };
 }

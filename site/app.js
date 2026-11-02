@@ -346,29 +346,33 @@
   });
 
   // ---------- Connections ----------
-  const KIND = { book: 'read', artist: 'music', show: 'screen', film: 'screen' };
+  const KIND = { book: 'read', artist: 'music', show: 'screen', film: 'screen', project: 'code' };
+  const size = (x) => (x.kind === 'project' ? plural(x.days || 0, 'dia', 'dias') : `${num(x.hours, 1)} h`);
   function renderSky() {
     const host = $('[data-sky]');
     host.textContent = '';
     const C = D.connections || { stars: [], links: [] };
     const readout = $('[data-sky-readout]');
     const books = C.stars.filter((x) => x.kind === 'book').length;
+    const made = C.stars.filter((x) => x.kind === 'project').length;
+    $('[data-code-key]')?.toggleAttribute('hidden', !made);
+    const hubs = [books && plural(books, 'livro', 'livros'), made && plural(made, 'projeto', 'projetos')].filter(Boolean).join(' e ');
     $('[data-links-line]').textContent = C.links.length
-      ? `${plural(books, 'livro ligado', 'livros ligados')} a ${plural(C.stars.length - books, 'artista, série ou filme', 'artistas, séries e filmes')}.`
+      ? `${hubs} ${books + made > 1 ? 'ligados' : 'ligado'} a ${plural(C.stars.length - books - made, 'artista, série ou filme', 'artistas, séries e filmes')}.`
       : '';
     if (!C.links.length) {
       const since = D.sources?.music?.since;
       readout.textContent = '';
-      return emptyNote(host, `As estrelas aparecem quando houver música tocando durante a leitura${since > 0 ? `; o histórico de música começa em ${fmtDay(since)}` : ''}.`);
+      return emptyNote(host, `As estrelas aparecem quando houver música tocando durante a leitura ou o código${since > 0 ? `; o histórico de música começa em ${fmtDay(since)}` : ''}.`);
     }
     // A small force layout, run once before drawing so the sky is still when it appears.
     const narrow = (host.clientWidth || 900) < 640;
     const W = narrow ? 420 : 1000, H = narrow ? 620 : 540;
-    const stars = C.stars.map((x, i) => ({ ...x, i, r: Math.min(20, 3.5 + Math.sqrt(x.hours || 0) * 1.8) }));
+    const stars = C.stars.map((x, i) => ({ ...x, i, r: Math.min(20, 3.5 + Math.sqrt(x.kind === 'project' ? (x.days || 0) / 2 : x.hours || 0) * 1.8) }));
     const byId = new Map(stars.map((x) => [x.id, x]));
     const links = C.links.map((l) => ({ ...l, a: byId.get(l.a), b: byId.get(l.b) })).filter((l) => l.a && l.b);
     const rnd = (() => { let a = 7; return () => ((a = (a * 16807) % 2147483647) / 2147483647); })();
-    const home = { book: [0.35, 0.5], artist: [0.6, 0.4], show: [0.65, 0.65], film: [0.65, 0.65] };
+    const home = { book: [0.35, 0.5], artist: [0.6, 0.4], show: [0.65, 0.65], film: [0.65, 0.65], project: [0.4, 0.2] };
     stars.forEach((x) => { x.x = (home[x.kind][0] + (rnd() - 0.5) * 0.4) * W; x.y = (home[x.kind][1] + (rnd() - 0.5) * 0.5) * H; });
     for (let it = 0; it < 500; it++) {
       const k = 1 - it / 500;
@@ -407,7 +411,7 @@
       if (!moved) break;
     }
 
-    const svg = el('svg:svg', { viewBox: `0 0 ${W} ${H}`, role: 'group', 'aria-label': 'Constelação dos livros, artistas e séries que dividiram o meu tempo' });
+    const svg = el('svg:svg', { viewBox: `0 0 ${W} ${H}`, role: 'group', 'aria-label': 'Constelação dos livros, projetos, artistas e séries que dividiram o meu tempo' });
     const eg = el('svg:g'), ng = el('svg:g');
     svg.append(eg, ng);
     links.forEach((l) => {
@@ -415,7 +419,7 @@
       eg.append(l.el);
     });
     stars.forEach((x) => {
-      const g = el('svg:g', { class: 'star', tabindex: 0, role: 'button', 'aria-label': `${x.name}, ${num(x.hours, 1)} h` });
+      const g = el('svg:g', { class: 'star', tabindex: 0, role: 'button', 'aria-label': `${x.name}, ${size(x)}` });
       g.append(el('svg:circle', { cx: x.x, cy: x.y, r: x.r + 8, fill: 'transparent' }));
       g.append(el('svg:circle', { cx: x.x, cy: x.y, r: x.r, fill: COLORS[KIND[x.kind]] }));
       g.append(el('svg:text', { x: x.x + x.r + 6, y: x.y + 4, text: x.name }));
@@ -446,12 +450,18 @@
         if (heard.length) parts.push(`ouvi ${list(heard.map((l) => `${esc(other(l).name)} (${fmtMin(l.minutes)})`))}`);
         if (weeks.length) parts.push(`nas mesmas semanas vi ${list(weeks.map((l) => `<em>${esc(other(l).name)}</em>`))}`);
         line = `Enquanto lia <em>${esc(x.name)}</em>, ${parts.join('; ')}.`;
+      } else if (x.kind === 'project') {
+        line = `Nas horas em que mexia em <em>${esc(x.name)}</em>, ouvi ${list(heard.map((l) => `${esc(other(l).name)} (${fmtMin(l.minutes)})`))}.`;
       } else if (x.kind === 'artist') {
-        line = `${esc(x.name)} tocou enquanto eu lia ${list(heard.map((l) => `<em>${esc(other(l).name)}</em> (${fmtMin(l.minutes)})`))}.`;
+        const by = (k) => heard.filter((l) => other(l).kind === k).map((l) => `<em>${esc(other(l).name)}</em> (${fmtMin(l.minutes)})`);
+        const parts = [];
+        if (by('book').length) parts.push(`enquanto eu lia ${list(by('book'))}`);
+        if (by('project').length) parts.push(`enquanto eu mexia em ${list(by('project'))}`);
+        line = `${esc(x.name)} tocou ${parts.join(' e ')}.`;
       } else {
         line = `<em>${esc(x.name)}</em> dividiu as semanas com ${list(weeks.map((l) => `<em>${esc(other(l).name)}</em>`))}.`;
       }
-      readout.innerHTML = `${line}<small>${num(x.hours, 1)} h no ano</small>`;
+      readout.innerHTML = `${line}<small>${size(x)} no ano</small>`;
     }
     focusStar(null);
     host._enter = () => {

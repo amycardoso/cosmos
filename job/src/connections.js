@@ -1,5 +1,5 @@
-// Where the three streams meet: what played while she read each book, and which
-// shows shared their weeks with a book. Built from the timelines the three sources
+// Where the streams meet: what played while she read each book, which shows shared
+// their weeks with a book, and what played in the hours she was making each project. Built from the timelines the three sources
 // leave in their output; the site only receives the computed links.
 import { local, dayIndex } from './time.js';
 
@@ -7,6 +7,8 @@ const SESSION_GAP = 5 * 60000; // page turns closer than this are one sitting
 const MIN_TOGETHER = 5; // minutes of an artist during a book before it counts as a link
 const ARTISTS_PER_BOOK = 3;
 const SHOWS_PER_BOOK = 2;
+const ARTISTS_PER_PROJECT = 3;
+const HOUR = 3600000;
 const WEEK_READ = 30; // minutes in a week before a book counts as being read that week
 
 // Reading stats as sittings: [startMs, endMs] for each run of page turns.
@@ -27,8 +29,9 @@ const week = (ms, year) => Math.floor(dayIndex(local(ms).date, year) / 7);
 // books: [{ title, hours, sittings: [[start, end]] }]
 // plays: [[endMs, ms, artist]] (Spotify's played_at is when the track ended)
 // watched: [[startMs, minutes, title, kind]]
+// coding: [[hourStartMs, project]], each hour with a commit once
 // since: first play in the music history, so time read before it is not called silence.
-export function connections({ books = [], plays = [], watched = [], since = null }, span) {
+export function connections({ books = [], plays = [], watched = [], coding = [], since = null }, span) {
   const sorted = [...plays].sort((a, b) => a[0] - b[0]);
   const soundtracks = {};
   const stars = new Map();
@@ -107,6 +110,35 @@ export function connections({ books = [], plays = [], watched = [], since = null
       if (!stars.has(id)) stars.set(id, { id, kind, name: rest.join(':'), hours: showHours.get(x.key) });
       links.push({ a: bk, b: id, weeks: x.shared, how: 'weeks' });
     }
+  }
+
+  // Projects: only hours are known, so what played in an hour with a commit counts as
+  // playing while she made that project. A project's star is sized by its days, not hours.
+  const hoursOf = new Map();
+  for (const [t, name] of coding) {
+    if (!hoursOf.has(name)) hoursOf.set(name, []);
+    hoursOf.get(name).push(t);
+  }
+  for (const [name, hours] of hoursOf) {
+    const byArtist = new Map();
+    let i = 0;
+    for (const s of [...hours].sort((a, b) => a - b)) {
+      if (since == null || s + HOUR <= since) continue;
+      const e = s + HOUR;
+      while (i < sorted.length && sorted[i][0] < s) i++;
+      for (let j = i; j < sorted.length && sorted[j][0] - sorted[j][1] < e; j++) {
+        const [end, ms, artist] = sorted[j];
+        const m = overlap(s, e, end - ms, end) / 60000;
+        if (m > 0) byArtist.set(artist, (byArtist.get(artist) || 0) + m);
+      }
+    }
+    const top = [...byArtist].map(([a, m]) => ({ name: a, minutes: Math.round(m) })).filter((a) => a.minutes >= MIN_TOGETHER)
+      .sort((a, b) => b.minutes - a.minutes).slice(0, ARTISTS_PER_PROJECT);
+    if (!top.length) continue;
+    const days = new Set(hours.map((t) => local(t).date)).size;
+    const id = `project:${name}`;
+    stars.set(id, { id, kind: 'project', name, hours: 0, days });
+    for (const a of top) links.push({ a: id, b: star('artist', a.name, a.minutes / 60), minutes: a.minutes, how: 'during' });
   }
 
   // An artist's star is as big as all the time with them this year, not only the time while reading.
