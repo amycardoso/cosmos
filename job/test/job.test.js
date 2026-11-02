@@ -419,6 +419,17 @@ test('connections: what played in the hours she made a project', async () => {
   assert.ok(!c.stars.some((x) => x.name === 'quiet'), 'a project with no music has no star');
 });
 
+test('connections: a project and a show of the same weeks', async () => {
+  const { connections } = await import('../src/connections.js');
+  const t = (iso) => Date.parse(iso);
+  const c = connections({
+    coding: [[t('2026-10-10T01:00:00Z'), 'cosmos'], [t('2026-10-12T15:00:00Z'), 'cosmos']],
+    watched: [[t('2026-10-11T23:00:00Z'), 50, 'Ruptura', 'show'], [t('2026-03-01T23:00:00Z'), 120, 'Duna', 'movie']],
+  }, span);
+  assert.deepEqual(c.links, [{ a: 'project:cosmos', b: 'show:Ruptura', weeks: 1, how: 'weeks' }]);
+  assert.equal(c.stars.find((x) => x.id === 'project:cosmos').days, 2);
+});
+
 test('Retry-After is read as seconds or a date, and ignored when past or unreadable', () => {
   const now = Date.parse('2026-10-25T12:00:00Z');
   assert.equal(retryAfter('5', now), 5000);

@@ -451,7 +451,10 @@
         if (weeks.length) parts.push(`nas mesmas semanas vi ${list(weeks.map((l) => `<em>${esc(other(l).name)}</em>`))}`);
         line = `Enquanto lia <em>${esc(x.name)}</em>, ${parts.join('; ')}.`;
       } else if (x.kind === 'project') {
-        line = `Nas horas em que mexia em <em>${esc(x.name)}</em>, ouvi ${list(heard.map((l) => `${esc(other(l).name)} (${fmtMin(l.minutes)})`))}.`;
+        const parts = [];
+        if (heard.length) parts.push(`ouvi ${list(heard.map((l) => `${esc(other(l).name)} (${fmtMin(l.minutes)})`))}`);
+        if (weeks.length) parts.push(`nas mesmas semanas vi ${list(weeks.map((l) => `<em>${esc(other(l).name)}</em>`))}`);
+        line = `Enquanto mexia em <em>${esc(x.name)}</em>, ${parts.join('; ')}.`;
       } else if (x.kind === 'artist') {
         const by = (k) => heard.filter((l) => other(l).kind === k).map((l) => `<em>${esc(other(l).name)}</em> (${fmtMin(l.minutes)})`);
         const parts = [];

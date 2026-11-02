@@ -1,5 +1,6 @@
 // Where the streams meet: what played while she read each book, which shows shared
-// their weeks with a book, and what played in the hours she was making each project. Built from the timelines the three sources
+// their weeks with a book, and what played and which shows shared the weeks while she
+// was making each project. Built from the timelines the three sources
 // leave in their output; the site only receives the computed links.
 import { local, dayIndex } from './time.js';
 
@@ -8,6 +9,7 @@ const MIN_TOGETHER = 5; // minutes of an artist during a book before it counts a
 const ARTISTS_PER_BOOK = 3;
 const SHOWS_PER_BOOK = 2;
 const ARTISTS_PER_PROJECT = 3;
+const SHOWS_PER_PROJECT = 2;
 const HOUR = 3600000;
 const WEEK_READ = 30; // minutes in a week before a book counts as being read that week
 
@@ -139,6 +141,24 @@ export function connections({ books = [], plays = [], watched = [], coding = [],
     const id = `project:${name}`;
     stars.set(id, { id, kind: 'project', name, hours: 0, days });
     for (const a of top) links.push({ a: id, b: star('artist', a.name, a.minutes / 60), minutes: a.minutes, how: 'during' });
+  }
+
+  // Projects and shows of the same weeks, by the same rule as books: most of the shorter one overlaps.
+  for (const [name, hours] of hoursOf) {
+    const weeks = new Set(hours.map((t) => week(t, span.year)).filter((w) => w >= 0));
+    if (!weeks.size) continue;
+    const near = [...showWeeks]
+      .map(([key, ws]) => ({ key, shared: [...ws].filter((w) => weeks.has(w)).length, size: Math.min(ws.size, weeks.size) }))
+      .filter((x) => x.shared >= 1 && x.shared / x.size >= 0.5)
+      .sort((x, y) => y.shared - x.shared)
+      .slice(0, SHOWS_PER_PROJECT);
+    if (!near.length) continue;
+    const id = `project:${name}`;
+    if (!stars.has(id)) stars.set(id, { id, kind: 'project', name, hours: 0, days: new Set(hours.map((t) => local(t).date)).size });
+    for (const x of near) {
+      if (!stars.has(x.key)) { const [kind, ...rest] = x.key.split(':'); stars.set(x.key, { id: x.key, kind, name: rest.join(':'), hours: showHours.get(x.key) }); }
+      links.push({ a: id, b: x.key, weeks: x.shared, how: 'weeks' });
+    }
   }
 
   // An artist's star is as big as all the time with them this year, not only the time while reading.

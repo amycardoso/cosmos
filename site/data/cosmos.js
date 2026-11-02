@@ -346,4 +346,7 @@
     if (!C.stars.some((s) => s.id === a)) C.stars.push({ id: a, kind: 'artist', name: artist, hours: 5 });
     C.links.push({ a: id, b: a, minutes, how: 'during' });
   }
+  for (const [name, show, n] of [['cosmos', 'show:Ruptura', 2], ['reading-atlas', 'show:Dark', 1], ['creative-coding', 'film:Perfect Days', 1]]) {
+    if (C.stars.some((s) => s.id === show)) C.links.push({ a: `project:${name}`, b: show, weeks: n, how: 'weeks' });
+  }
 })();
