@@ -15,6 +15,7 @@
   --read:#F2A8C7;       /* pink belts */
   --music:#84CDEE;      /* cyan belts */
   --screen:#B5A2EC;     /* lavender belts */
+  --code:#EBD199;       /* pale gold, the bright equatorial zone: code */
   --pole:#A86A4E;       /* polar haze, for stops and pauses */
   --spot:#3948CF;       /* the Great Red Spot, deep blue in UV */
   --display:Bricolage,ui-sans-serif,system-ui,sans-serif;
@@ -38,7 +39,7 @@ html{scrollbar-color:#2A2838 var(--space)}
 .skip{position:absolute;left:-999px;top:8px;background:var(--zone);color:var(--space);padding:8px 12px;border-radius:6px;z-index:10}
 .skip:focus{left:8px}
 i.sw{display:inline-block;width:14px;height:6px;border-radius:3px;margin-right:8px;vertical-align:2px}
-.sw--read{background:var(--read)}.sw--music{background:var(--music)}.sw--screen{background:var(--screen)}
+.sw--read{background:var(--read)}.sw--music{background:var(--music)}.sw--screen{background:var(--screen)}.sw--code{background:var(--code)}
 .sw--all{background:linear-gradient(90deg,var(--read) 0 33%,var(--music) 33% 66%,var(--screen) 66%)}
 
 /* Header */
@@ -70,7 +71,7 @@ i.sw{display:inline-block;width:14px;height:6px;border-radius:3px;margin-right:8
 .overview h1 span{font-weight:300;color:var(--haze)}
 .overview__lede{margin-top:14px;font-size:19px;color:var(--haze);max-width:60ch}
 .overview__lede b{font-weight:600}
-.overview__lede .r{color:var(--read)}.overview__lede .m{color:var(--music)}.overview__lede .s{color:var(--screen)}
+.overview__lede .r{color:var(--read)}.overview__lede .m{color:var(--music)}.overview__lede .s{color:var(--screen)}.overview__lede .c{color:var(--code)}
 .bands{margin-top:36px;display:grid;grid-template-columns:96px minmax(0,1fr);column-gap:16px;row-gap:10px}
 .bands__months{grid-column:2;position:relative;height:16px;font-size:12px;color:var(--dim)}
 .bands__months span{position:absolute;top:0}
@@ -81,7 +82,7 @@ i.sw{display:inline-block;width:14px;height:6px;border-radius:3px;margin-right:8
 .band svg{display:block;width:100%;height:auto;cursor:crosshair;overflow:visible}
 .bands__readout{grid-column:2;min-height:22px;font-size:14px;color:var(--haze)}
 .bands__readout b,.day__readout b{color:var(--zone);font-weight:600}
-.bands__readout .read,.day__readout .read{color:var(--read)}.bands__readout .music,.day__readout .music{color:var(--music)}.bands__readout .screen,.day__readout .screen{color:var(--screen)}
+.bands__readout .read,.day__readout .read{color:var(--read)}.bands__readout .music,.day__readout .music{color:var(--music)}.bands__readout .screen,.day__readout .screen{color:var(--screen)}.bands__readout .code,.day__readout .code{color:var(--code)}
 .band rect.hit{stroke:var(--zone);stroke-width:1.5px;vector-effect:non-scaling-stroke}
 /* Today breathes slowly: the only thing that moves while the page is still. */
 .today-ring{animation:breathe 3.2s ease-in-out infinite}
@@ -102,7 +103,7 @@ i.sw{display:inline-block;width:14px;height:6px;border-radius:3px;margin-right:8
 
 /* Streams */
 .stream{max-width:1440px;margin:0 auto;padding:56px var(--gutter) 64px;border-bottom:1px solid var(--line)}
-.stream--links{--c:var(--zone)}.stream--read{--c:var(--read)}.stream--music{--c:var(--music)}.stream--screen{--c:var(--screen)}
+.stream--links{--c:var(--zone)}.stream--read{--c:var(--read)}.stream--music{--c:var(--music)}.stream--screen{--c:var(--screen)}.stream--code{--c:var(--code)}
 .stream__head{display:flex;align-items:baseline;gap:20px;flex-wrap:wrap;margin-bottom:36px}
 .stream__head :is(h1,h2){font-size:clamp(32px,3.4vw,44px);color:var(--c);letter-spacing:-.035em}
 .stream__head p{color:var(--haze);font-size:17px}
@@ -376,5 +377,28 @@ i.sw{display:inline-block;width:14px;height:6px;border-radius:3px;margin-right:8
 .genre-key small{display:block;color:var(--dim);font-size:13px}
 .genre-key em{font-style:normal;color:var(--haze);font-size:14px}
 @media (max-width:560px){.onday .yr{grid-template-columns:38px 64px minmax(0,1fr);gap:10px;font-size:14px}.onday .t small{display:block;margin:0}.onday .t{white-space:normal}}
+/* Code: the one belt on its page, projects week by week, hours and languages */
+.fig.bands{display:grid;margin-top:0;gap:10px 16px}
+.proj li{display:grid;grid-template-columns:220px minmax(0,1fr) 56px;gap:20px;align-items:center}
+.proj__row{padding:9px 0;border-top:1px solid var(--line)}
+.proj__axis{padding-bottom:6px;font-size:12px;color:var(--dim)}
+.proj__axis > span:last-child{text-align:right}
+.proj__months{position:relative;height:16px}.proj__months span{position:absolute;top:0}
+.proj__name{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.proj__name small{display:block;color:var(--haze);font-size:12px}
+.proj svg{display:block;width:100%;height:14px}
+.proj__days{text-align:right;color:var(--haze);font-size:14px}
+.code-hours svg{display:block;width:100%;height:auto;cursor:crosshair}
+.code-hours text{font-size:12px;fill:var(--dim)}
+.code-hours rect.hit{stroke:var(--zone);stroke-width:1.5px;vector-effect:non-scaling-stroke}
+.langs__bar{display:flex;gap:2px;height:14px;border-radius:4px;overflow:hidden}
+.langs li{display:grid;grid-template-columns:14px minmax(0,1fr) auto;gap:12px;align-items:center;padding:9px 0;border-top:1px solid var(--line);font-size:15px}
+.langs li i{width:14px;height:14px;border-radius:3px}
+.langs li span:last-child{color:var(--haze);font-size:14px}
+@media (max-width:760px){
+  .proj li{grid-template-columns:minmax(0,1fr) auto;gap:6px 12px}
+  .proj li svg,.proj__axis .proj__months{grid-column:1/-1;grid-row:2}
+  .proj__axis > span:not(.proj__months){display:none}
+}
 @media (prefers-reduced-motion:reduce){.comets .head{animation:none}}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.today-ring{animation:none}.fig{transition:none}.sky-fig::before{animation:none}}

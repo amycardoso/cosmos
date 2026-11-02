@@ -473,3 +473,85 @@ test('covers: only so many lookups a run, the rest wait for the next', async () 
   assert.deepEqual(asked, ['A', 'B']);
   assert.deepEqual(Object.keys(out.cache), ['a|', 'b|']);
 });
+
+test('code: days, hours and projects, an hour counted once, past years without a now', async () => {
+  const { code, hidden } = await import('../src/github.js');
+  const at = (iso) => Date.parse(iso);
+  const years = {
+    2026: [
+      // 19 Oct 22h local twice (one hour), 20 Oct 0h local
+      { name: 'cosmos', lang: 'JavaScript', times: [at('2026-10-20T01:05:00Z'), at('2026-10-20T01:40:00Z'), at('2026-10-20T03:10:00Z')] },
+      { name: 'reading-atlas', lang: 'Lua', times: [at('2026-09-01T23:00:00Z')] },
+    ],
+    2025: [
+      // 31 Dec 2025 23h local is still 2025, though UTC already says 2026
+      { name: 'batuta', lang: 'TypeScript', times: [at('2026-01-01T02:00:00Z')] },
+    ],
+  };
+  const c = code(years, span);
+  assert.equal(c.codingDays.length, span.days);
+  assert.equal(c.codingDays[dayIndex('2026-10-19', 2026)], 1);
+  assert.equal(c.codingDays.reduce((a, b) => a + b, 0), 2); // the 20th is after today (19 Oct)
+  assert.deepEqual(c.projects.map((p) => p.name), ['cosmos', 'reading-atlas']);
+  assert.deepEqual(c.languages, [{ name: 'JavaScript', days: 1 }, { name: 'Lua', days: 1 }]);
+  assert.equal(c.recent.name, 'cosmos');
+  assert.equal(c.codingClocks.year[1][22], 1); // Monday 22h
+
+  const past = code(years, spanOf(2025, NOW));
+  assert.deepEqual(past.projects.map((p) => p.name), ['batuta']);
+  assert.deepEqual(past.projects[0].days, [364]);
+  assert.equal(past.recent, null);
+
+  assert.deepEqual([...hidden({ COSMOS_GITHUB_HIDE: ' Meta-Ads-Library, ,threads-scraper' })], ['meta-ads-library', 'threads-scraper']);
+});
+
+test('compose carries code and its period clocks', async () => {
+  const { code } = await import('../src/github.js');
+  const c = code({ 2026: [{ name: 'cosmos', lang: 'JavaScript', times: [Date.parse('2026-10-19T12:00:00Z')] }] }, span);
+  const d = compose({ read: {}, listen: {}, watch: {}, create: { data: c, status: 'ok', at: 1 } }, span, NOW);
+  assert.equal(d.codingDays.length, span.days);
+  assert.equal(d.code.projects[0].name, 'cosmos');
+  assert.equal(d.periods.week.codingClock.length, 7);
+  assert.equal(d.sources.code.status, 'ok');
+  const none = compose({ read: {}, listen: {}, watch: {} }, span, NOW);
+  assert.equal(none.sources.code.status, 'missing');
+  assert.deepEqual(none.code.projects, []);
+});
+
+test('github: keeps each hour once, and a year with a failed repository is read again', async () => {
+  const { fetchGitHub } = await import('../src/github.js');
+  let brokenReads = 0;
+  const real = globalThis.fetch;
+  const reply = (data) => ({ ok: true, status: 200, json: async () => ({ data }) });
+  globalThis.fetch = async (url, { body }) => {
+    const { query, variables } = JSON.parse(body);
+    if (query.includes('contributionYears')) return reply({ viewer: { id: 'U', login: 'amycardoso', contributionsCollection: { contributionYears: [2025] } } });
+    if (query.includes('commitContributionsByRepository')) {
+      const repo = (name, owner = 'amycardoso') => ({ repository: { name, owner: { login: owner }, primaryLanguage: { name: 'Lua' }, defaultBranchRef: { name: 'main' } } });
+      return reply({ viewer: { contributionsCollection: { commitContributionsByRepository: [repo('reading-atlas'), repo('broken'), repo('work', 'someorg')] } } });
+    }
+    if (variables.name === 'broken') { brokenReads += 1; return { ok: false, status: 500, json: async () => ({}) }; }
+    return reply({ repository: { defaultBranchRef: { target: { history: { pageInfo: { hasNextPage: false }, nodes: [
+      { authoredDate: '2025-05-01T22:10:00Z' }, { authoredDate: '2025-05-01T22:50:00Z' }, { authoredDate: '2025-05-02T10:05:00Z' },
+    ] } } } } });
+  };
+  try {
+    const got = await fetchGitHub({ COSMOS_GITHUB_TOKEN: 'x' }, {}, NOW);
+    assert.deepEqual(got.years[2025].map((r) => r.name), ['reading-atlas']);
+    assert.deepEqual(got.years[2025][0].times, [Date.parse('2025-05-01T22:00:00Z'), Date.parse('2025-05-02T10:00:00Z')]);
+    assert.equal(got.cache[2025].at, 0); // 'broken' failed, so 2025 isn't done
+    const again = await fetchGitHub({ COSMOS_GITHUB_TOKEN: 'x' }, got.cache, NOW);
+    assert.equal(brokenReads, 2, 'the failed year is read again');
+    assert.deepEqual(again.years[2025].map((r) => r.name), ['reading-atlas']);
+    // A done year is kept, unless it was read under another hide list.
+    const done = { 2025: { ...again.cache[2025], at: NOW } };
+    const reads = brokenReads;
+    await fetchGitHub({ COSMOS_GITHUB_TOKEN: 'x' }, done, NOW);
+    assert.equal(brokenReads, reads);
+    const hid = await fetchGitHub({ COSMOS_GITHUB_TOKEN: 'x', COSMOS_GITHUB_HIDE: 'Reading-Atlas' }, done, NOW);
+    assert.equal(brokenReads, reads + 1, 'another hide list reads the year again');
+    assert.deepEqual(hid.years[2025], []);
+  } finally {
+    globalThis.fetch = real;
+  }
+});

@@ -15,6 +15,7 @@ import { withSkoob } from './skoob.js';
 import { connections } from './connections.js';
 import { archive } from './archive.js';
 import { fetchGenres, family } from './genres.js';
+import { fetchGitHub, code } from './github.js';
 
 const env = process.env;
 const has = (...keys) => keys.every((k) => env[k]);
@@ -45,15 +46,17 @@ async function source(name, ready, run, state, span) {
   }
 }
 
-export function compose({ read, listen, watch }, span, now) {
+export function compose({ read, listen, watch, create = {} }, span, now) {
   const r = read.data || {};
   const m = listen.data || {};
   const s = watch.data || {};
+  const c = create.data || {};
   const empty = Array.from({ length: 7 }, () => new Array(24).fill(0));
   const period = (p) => ({
     readingClock: r.readingClocks?.[p] || empty,
     listeningClock: m.listeningClocks?.[p] || empty,
     watchingClock: s.watchingClocks?.[p] || empty,
+    codingClock: c.codingClocks?.[p] || empty,
     topTracks: m.periods?.[p]?.topTracks || [],
     artists: m.periods?.[p]?.artists || [],
     feelings: s.periods?.[p]?.feelings || {},
@@ -68,13 +71,16 @@ export function compose({ read, listen, watch }, span, now) {
       reading: { status: read.status, at: read.at },
       music: { status: listen.status, at: listen.at, since: m.listeningSince ?? null },
       screens: { status: watch.status, at: watch.at },
+      code: { status: create.status || 'missing', at: create.at || null },
     },
     readingDays: fit(r.readingDays, span.days),
     listeningDays: fit(m.listeningDays, span.days),
     watchingDays: fit(s.watchingDays, span.days),
+    codingDays: fit(c.codingDays, span.days),
     readingClock: periods.year.readingClock,
     listeningClock: periods.year.listeningClock,
     watchingClock: periods.year.watchingClock,
+    codingClock: periods.year.codingClock,
     books: r.books || [],
     library: r.library || [],
     fingerprints: r.fingerprints || [],
@@ -88,6 +94,7 @@ export function compose({ read, listen, watch }, span, now) {
     marathons: s.marathons || [],
     marathonEpisodes: s.marathonEpisodes ?? null,
     pace: s.pace || [],
+    code: { projects: c.projects || [], languages: c.languages || [], recent: c.recent || null },
     connections: connections({ books: r.timeline, plays: m.timeline, watched: s.timeline, since: m.historySince ?? null }, span),
     periods,
   };
@@ -111,7 +118,7 @@ async function artistGenres(history, state) {
 }
 
 // Which years are worth a page: the current one always, an earlier one when any source has something in it.
-const worthAPage = (d) => d.current || d.books.length > 0 || d.shows.length > 0 || [d.readingDays, d.listeningDays, d.watchingDays].some((a) => a.some((m) => m > 0));
+const worthAPage = (d) => d.current || d.books.length > 0 || d.shows.length > 0 || [d.readingDays, d.listeningDays, d.watchingDays, d.codingDays].some((a) => a.some((m) => m > 0));
 
 export async function main() {
   const now = Date.now();
@@ -146,10 +153,21 @@ export async function main() {
     return { years: each(firstWatched(fetched.mirror), (s) => screens(fetched, s)) };
   }, state, span);
 
-  const years = [...new Set([read, listen, watch].flatMap((x) => Object.keys(x.data?.years || {}).map(Number)).concat(span.year))].sort((a, b) => b - a);
+  // Code: her own projects on GitHub. Past years are read once and kept in their own cache.
+  const create = await source('code', has('COSMOS_GITHUB_TOKEN'), async () => {
+    const fetched = await fetchGitHub(env, (await state.get('github-years')) || {}, now);
+    await state.put('github-years', fetched.cache);
+    // The first local year comes from the earliest commit: a UTC year can start on her 31 December.
+    const first = Object.values(fetched.years).flat().reduce((m, r) => Math.min(m, r.times[0] ?? Infinity), Infinity);
+    return { hide: env.COSMOS_GITHUB_HIDE || '', years: each(Number.isFinite(first) ? first : now, (s) => code(fetched.years, s)) };
+  }, state, span);
+  // A last good read made before a repository was hidden would still show it.
+  if (create.data && (create.data.hide || '') !== (env.COSMOS_GITHUB_HIDE || '')) create.data = null;
+
+  const years = [...new Set([read, listen, watch, create].flatMap((x) => Object.keys(x.data?.years || {}).map(Number)).concat(span.year))].sort((a, b) => b - a);
   const pick = (x, y) => ({ ...x, data: x.data?.years?.[y] || null });
   const pages = years
-    .map((y) => compose({ read: pick(read, y), listen: pick(listen, y), watch: pick(watch, y) }, spanOf(y, now), now))
+    .map((y) => compose({ read: pick(read, y), listen: pick(listen, y), watch: pick(watch, y), create: pick(create, y) }, spanOf(y, now), now))
     .filter(worthAPage);
   for (const d of pages) d.years = pages.map((p) => p.year);
 

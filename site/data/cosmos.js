@@ -287,3 +287,48 @@
     .map((s) => ({ ...s, first: s.days[0][0], last: s.days[s.days.length - 1][0], episodes: s.days.reduce((a, [, n]) => a + n, 0) }))
     .sort((a, b) => b.last - a.last);
 })();
+
+// Sixth pass: code, as the job reads it from GitHub: the days and hours she made something
+// in her own projects, never how much. Synthetic, with made-up days.
+(function () {
+  const D = window.COSMOS_DATA;
+  const days = D.readingDays.length;
+  const day = (m, d) => Math.round((Date.UTC(D.year, m - 1, d) - Date.UTC(D.year, 0, 1)) / 86400000);
+  let a = 77;
+  const r = () => ((a = (a * 16807) % 2147483647) - 1) / 2147483646;
+  const plan = [
+    ['cosmos', 'JavaScript', day(10, 1), days - 1, 0.8],
+    ['reading-atlas', 'Lua', day(8, 30), day(10, 18), 0.3],
+    ['creative-coding', 'JavaScript', day(7, 20), day(10, 15), 0.16],
+    ['batuta', 'TypeScript', day(7, 25), day(9, 20), 0.22],
+    ['dungeons-and-monsters', 'TypeScript', day(9, 28), day(10, 12), 0.45],
+    ['dump2plan', 'Java', day(1, 24), day(2, 21), 0.3],
+    ['flight-search', 'Python', day(2, 26), day(3, 11), 0.5],
+    ['jev-palette', 'JavaScript', day(9, 12), day(9, 20), 0.5],
+  ];
+  D.codingDays = new Array(days).fill(0);
+  const projects = plan.map(([name, lang, from, to, p]) => {
+    const mine = [];
+    for (let i = from; i <= to; i++) {
+      const dow = new Date(Date.UTC(D.year, 0, 1 + i)).getUTCDay();
+      if (r() < p * (dow === 0 || dow === 6 ? 1.6 : 1)) { mine.push(i); D.codingDays[i] += 1 + Math.floor(r() * 3); }
+    }
+    return { name, lang, days: mine };
+  }).filter((p) => p.days.length).sort((x, y) => y.days.length - x.days.length);
+  const weight = {};
+  projects.forEach((p) => (weight[p.lang] = (weight[p.lang] || 0) + p.days.length));
+  const clock = (keep) => Array.from({ length: 7 }, (_, d) => Array.from({ length: 24 }, (_, h) => {
+    const weekend = d === 0 || d === 6;
+    const v = Math.exp(-Math.pow((h - 21.5) / 1.6, 2)) + (weekend ? 0.7 * Math.exp(-Math.pow((h - 14) / 2.5, 2)) : 0.2 * Math.exp(-Math.pow((h - 12.5) / 0.6, 2)));
+    return r() < keep ? Math.min(1, v + r() * 0.05) : 0;
+  }));
+  D.codingClock = clock(1);
+  D.periods.year.codingClock = D.codingClock;
+  D.periods.month.codingClock = clock(0.6);
+  D.periods.week.codingClock = clock(0.25);
+  D.code = {
+    projects,
+    languages: Object.entries(weight).sort((x, y) => y[1] - x[1]).map(([name, n]) => ({ name, days: n })),
+    recent: { name: 'cosmos', lang: 'JavaScript', at: '2026-10-19T21:12:00-03:00' },
+  };
+})();
