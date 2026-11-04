@@ -66,13 +66,14 @@
         </ul>
       </figure>
       <figure class="fig fig--full">
-        <figcaption><h3>Como o dia se divide</h3><p>Cada hora da semana em três traços: leitura, música e telas, cada um medido contra a própria história.</p></figcaption>
+        <figcaption><h3>Como o dia se divide</h3><p data-day-caption>Cada hora da semana em três traços: leitura, música e telas, cada um medido contra a própria história.</p></figcaption>
         <div class="day__controls">
           <div class="pick" role="radiogroup" aria-label="Mostrar">
             <button role="radio" data-show="all">os três</button>
             <button role="radio" data-show="read">leitura</button>
             <button role="radio" data-show="music">música</button>
             <button role="radio" data-show="screen">telas</button>
+            <button role="radio" data-show="code">código</button>
           </div>
         </div>
         <div class="day" data-day></div>
@@ -81,6 +82,7 @@
           <li><i class="sw sw--read" aria-hidden="true"></i><span data-read-peak></span></li>
           <li><i class="sw sw--music" aria-hidden="true"></i><span data-music-peak></span></li>
           <li><i class="sw sw--screen" aria-hidden="true"></i><span data-screen-peak></span></li>
+          <li><i class="sw sw--code" aria-hidden="true"></i><span data-code-peak-day></span></li>
         </ul>
       </figure>
     </div>
