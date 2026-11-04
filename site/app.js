@@ -272,14 +272,26 @@
   // Each hour of the week is a cell split in three stripes: reading, music, screens,
   // each on its own quartile ramp. Picking one stream draws it alone, in whole cells.
   let dayShow = 'all';
+  // Code joins as a fourth stripe when there is any; otherwise its pick, peak and words leave.
+  const DAY_STREAMS = () => STREAMS.concat(CODE_ON ? [CODE] : []);
+  if (CODE_ON) {
+    const all = $('[data-show="all"]');
+    if (all) all.textContent = 'os quatro';
+    const cap = $('[data-day-caption]');
+    if (cap) cap.textContent = 'Cada hora da semana em quatro traços: leitura, música, telas e código, cada um medido contra a própria história.';
+  } else {
+    $('[data-show="code"]')?.remove();
+    $('[data-code-peak-day]')?.closest('li')?.remove();
+  }
   const LEVEL_WORDS = ['nada', 'pouco', 'às vezes', 'muito', 'o mais forte'];
   function renderDay(sweep = true) {
     const host = $('[data-day]');
     host.textContent = '';
     const P = D.periods[period];
-    const grids = { read: P.readingClock, music: P.listeningClock, screen: P.watchingClock };
+    const grids = { read: P.readingClock, music: P.listeningClock, screen: P.watchingClock, code: P.codingClock || D.codingClock };
+    const all = DAY_STREAMS();
     const levels = {};
-    STREAMS.forEach((s) => {
+    all.forEach((s) => {
       const clean = grids[s.key].map((row) => row.map((v) => (v < 0.1 ? 0 : v)));
       const qs = quartiles(clean.flat());
       levels[s.key] = clean.map((row) => row.map((v) => level(v, qs)));
@@ -289,7 +301,7 @@
     const svg = el('svg:svg', { viewBox: `0 0 ${left + 24 * (cw + gap)} ${top + 7 * (ch + gap)}`, role: 'img' });
     const fs = small ? 'font-size:11px' : '';
     [0, 6, 12, 18].forEach((h) => svg.append(el('svg:text', { x: left + h * (cw + gap), y: 12, text: `${h}h`, style: fs })));
-    const shown = dayShow === 'all' ? STREAMS : STREAMS.filter((s) => s.key === dayShow);
+    const shown = dayShow === 'all' ? all : all.filter((s) => s.key === dayShow);
     const sw = (cw - (shown.length - 1)) / shown.length;
     for (let d = 0; d < 7; d++) {
       svg.append(el('svg:text', { x: 0, y: top + d * (ch + gap) + ch - 3, text: DOW[d], style: fs }));
@@ -310,23 +322,24 @@
       const d = +g.dataset.d, h = +g.dataset.h;
       svg.querySelector('.hit')?.classList.remove('hit');
       g.classList.add('hit');
-      readout.innerHTML = `<b>${DOW[d]}, ${h}h</b> · ${STREAMS.map((s) => `<span class="${s.key}">${s.name.toLowerCase()}: ${LEVEL_WORDS[levels[s.key][d][h]]}</span>`).join(' · ')}`;
+      readout.innerHTML = `<b>${DOW[d]}, ${h}h</b> · ${all.map((s) => `<span class="${s.key}">${s.name.toLowerCase()}: ${LEVEL_WORDS[levels[s.key][d][h]]}</span>`).join(' · ')}`;
     };
     svg.addEventListener('pointermove', show);
     svg.addEventListener('pointerdown', show);
     host.append(svg);
 
     // One peak sentence per stream, under the grid.
-    const verbs = { read: 'Leio', music: 'Ouço', screen: 'Assisto' };
+    const verbs = { read: 'Leio', music: 'Ouço', screen: 'Assisto', code: 'Programo' };
     const peaks = [];
-    STREAMS.forEach((s) => {
+    all.forEach((s) => {
       let best = [0, 0, 0];
       grids[s.key].forEach((row, d) => row.forEach((v, h) => { if (v >= 0.1 && v > best[2]) best = [d, h, v]; }));
       const line = best[2] > 0 ? `${verbs[s.key]} mais ${DOW_LONG[best[0]]}, por volta das ${best[1]}h.` : `${s.name}: nada no período.`;
-      $(`[data-${s.key}-peak]`).textContent = line;
+      const out = $(s.key === 'code' ? '[data-code-peak-day]' : `[data-${s.key}-peak]`);
+      if (out) out.textContent = line;
       peaks.push(line);
     });
-    svg.setAttribute('aria-label', `As horas da semana dos três hábitos. ${peaks.join(' ')}`);
+    svg.setAttribute('aria-label', `As horas da semana ${all.length === 4 ? 'dos quatro' : 'dos três'} hábitos. ${peaks.join(' ')}`);
   }
   const picks = [...document.querySelectorAll('[data-show]')];
   function setDayShow(v) {
