@@ -17,7 +17,8 @@ export async function gql(env, query, variables) {
   // A token pasted with more than itself would end up, whole, in fetch's error message,
   // and the logs are public: refuse it here and say so without echoing it.
   const token = String(env.COSMOS_GITHUB_TOKEN || '').trim();
-  if (!token || /\s/.test(token)) throw new Error('the token is not a single line; set the secret again with only the token');
+  if (!token) throw new Error('the token is empty; set the secret again with only the token');
+  if (/\s/.test(token)) throw new Error('the token has spaces or line breaks in it; set the secret again with only the token');
   for (let attempt = 0; attempt < 3; attempt++) {
     const res = await fetch(API, {
       method: 'POST',
