@@ -56,7 +56,9 @@ const HISTORY = `query($owner: String!, $name: String!, $author: ID!, $since: Gi
 const list = (v) => String(v || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
 export const orgs = (env) => [...new Set(list(env.COSMOS_GITHUB_ORGS))].sort();
 // What a cached year was read under: a change in either list reads the years again.
-export const settings = (env) => `${[...hidden(env)].sort().join(',')}|${orgs(env).join(',')}`;
+// "2:" marks organisations read through their repositories; years cached before that
+// were read through contributions, which miss them, so they are read again.
+export const settings = (env) => `${[...hidden(env)].sort().join(',')}|${orgs(env).length ? `2:${orgs(env).join(',')}` : ''}`;
 export const hidden = (env) => new Set(String(env.COSMOS_GITHUB_HIDE || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean));
 
 // One year as raw material: each of her projects with the hours she committed in, each hour

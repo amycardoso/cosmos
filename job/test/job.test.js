@@ -436,7 +436,10 @@ test('github: her organisations are read with their own token, others stay out',
     assert.deepEqual(said, ['code: reformasimples, the token sees 2 of its repositories; 1 with her commits this year']);
     assert.deepEqual(got.years[2026].map((r) => r.name).sort(), ['constructus', 'cosmos']);
     assert.deepEqual(seen.sort(), ['me:amycardoso/cosmos', 'org:reformasimples/constructus']);
-    assert.equal(settings(env), '|reformasimples');
+    assert.equal(settings(env), '|2:reformasimples');
+    // Years cached before organisations were read through their repositories don't match.
+    assert.notEqual(settings(env), '|reformasimples');
+    assert.equal(settings({}), '|');
     // Without the organisation's token, its read fails quietly and her own projects stay.
     globalThis.fetch = ((inner) => async (url, opts) => (opts.headers.Authorization.endsWith(' bad') ? { ok: false, status: 401, json: async () => ({}) } : inner(url, opts)))(globalThis.fetch);
     const partial = await fetchGitHub({ ...env, COSMOS_GITHUB_ORG_TOKEN: 'bad' }, {}, NOW);
