@@ -430,6 +430,21 @@ test('github: her organisations are read with their own token, others stay out',
     const partial = await fetchGitHub({ ...env, COSMOS_GITHUB_ORG_TOKEN: 'bad' }, {}, NOW);
     assert.deepEqual(partial.years[2026].map((r) => r.name), ['cosmos']);
     assert.equal(partial.cache[2026].at, 0);
+    // A token pasted with other lines is refused without reaching fetch, and never echoed.
+    const logs = [];
+    const log = console.log;
+    console.log = (m) => logs.push(String(m));
+    try {
+      const pasted = await fetchGitHub({ ...env, COSMOS_GITHUB_ORG_TOKEN: 'org\nsome other line' }, {}, NOW);
+      assert.deepEqual(pasted.years[2026].map((r) => r.name), ['cosmos']);
+    } finally {
+      console.log = log;
+    }
+    assert.ok(logs.some((l) => l.includes('not a single line')));
+    assert.ok(!logs.some((l) => l.includes('some other line')));
+    // Surrounding whitespace, as a paste leaves it, is fine.
+    const spaced = await fetchGitHub({ ...env, COSMOS_GITHUB_TOKEN: ' me\n' }, {}, NOW);
+    assert.ok(spaced.years[2026].some((r) => r.name === 'cosmos'));
   } finally {
     globalThis.fetch = real;
   }

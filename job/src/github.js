@@ -14,10 +14,14 @@ const API = 'https://api.github.com/graphql';
 const PAGE = 100;
 
 export async function gql(env, query, variables) {
+  // A token pasted with more than itself would end up, whole, in fetch's error message,
+  // and the logs are public: refuse it here and say so without echoing it.
+  const token = String(env.COSMOS_GITHUB_TOKEN || '').trim();
+  if (!token || /\s/.test(token)) throw new Error('the token is not a single line; set the secret again with only the token');
   for (let attempt = 0; attempt < 3; attempt++) {
     const res = await fetch(API, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${env.COSMOS_GITHUB_TOKEN}`, 'Content-Type': 'application/json', 'User-Agent': 'cosmos-job' },
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'User-Agent': 'cosmos-job' },
       body: JSON.stringify({ query, variables }),
     });
     if (res.status === 502 || res.status === 503) {
