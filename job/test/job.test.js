@@ -413,10 +413,15 @@ test('github: her organisations are read with their own token, others stay out',
     if (query.includes('commitContributionsByRepository')) {
       const repo = (name, owner) => ({ repository: { name, owner: { login: owner }, primaryLanguage: { name: 'Dart' }, defaultBranchRef: { name: 'main' } } });
       // Each token sees what it can reach.
-      const list = token === 'org' ? [repo('constructus', 'reformasimples'), repo('cht-core', 'medic')] : [repo('cosmos', 'amycardoso'), repo('cht-core', 'medic')];
+      const list = token === 'org' ? [] : [repo('cosmos', 'amycardoso'), repo('cht-core', 'medic')];
       return reply({ viewer: { contributionsCollection: { commitContributionsByRepository: list } } });
     }
-    if (query.includes('organization(')) return reply({ organization: { repositories: { totalCount: token === 'org' ? 3 : 0 } } });
+    if (query.includes('organization(')) {
+      // The organisation's token lists its repositories; its contributions list stays empty (above).
+      const repo = (name, pushedAt) => ({ name, owner: { login: variables.login }, primaryLanguage: { name: 'Dart' }, defaultBranchRef: { name: 'main' }, createdAt: '2024-01-01T00:00:00Z', pushedAt });
+      const nodes = token === 'org' ? [repo('constructus', '2026-10-11T00:00:00Z'), repo('old', '2025-03-01T00:00:00Z'), repo('empty', null)] : [];
+      return reply({ organization: { repositories: { pageInfo: { hasNextPage: false }, nodes } } });
+    }
     seen.push(`${token}:${variables.owner}/${variables.name}`);
     return reply({ repository: { defaultBranchRef: { target: { history: { pageInfo: { hasNextPage: false }, nodes: [{ authoredDate: '2026-10-10T12:00:00Z' }] } } } } });
   };
@@ -428,7 +433,7 @@ test('github: her organisations are read with their own token, others stay out',
     let got;
     try { got = await fetchGitHub(env, {}, NOW); } finally { console.log = log0; }
     // The log says what the organisation's token sees, as counts only.
-    assert.deepEqual(said, ['code: reformasimples, the token sees 3 of its repositories; 1 with her commits on the default branch this year, 1 read']);
+    assert.deepEqual(said, ['code: reformasimples, the token sees 2 of its repositories; 1 with her commits this year']);
     assert.deepEqual(got.years[2026].map((r) => r.name).sort(), ['constructus', 'cosmos']);
     assert.deepEqual(seen.sort(), ['me:amycardoso/cosmos', 'org:reformasimples/constructus']);
     assert.equal(settings(env), '|reformasimples');

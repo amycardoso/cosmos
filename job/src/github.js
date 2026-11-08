@@ -64,16 +64,22 @@ export const hidden = (env) => new Set(String(env.COSMOS_GITHUB_HIDE || '').spli
 // `complete` is false when a repository couldn't be read, so the year is read again next run.
 // GitHub caps a contributions window at a year, so the window is the UTC year; a commit
 // late on 31 December in São Paulo is still found through its repository's history.
-async function readYear(env, owners, who, year, nowMs) {
-  const to = new Date(Math.min(nowMs, Date.UTC(year, 11, 31, 23, 59, 59))).toISOString();
-  const data = await gql(env, REPOS, { from: new Date(Date.UTC(year, 0, 1)).toISOString(), to });
+// `listed` (organisations): their repositories as the token lists them. An organisation's
+// fine-grained token doesn't get her contributions there, so each repository active in the
+// year is searched for her commits instead.
+async function readYear(env, owners, who, year, nowMs, listed = null) {
   const hide = hidden(env);
-  const repos = data.viewer.contributionsCollection.commitContributionsByRepository
-    .map((c) => c.repository)
-    .filter((r) => owners.has(r.owner.login.toLowerCase()) && r.defaultBranchRef && !hide.has(r.name.toLowerCase()));
-  // Local year bounds, with a day's margin either side; the views keep only this year's local days.
   const since = new Date(Date.UTC(year, 0, 1) - 86400000).toISOString();
   const until = new Date(Math.min(nowMs, Date.UTC(year + 1, 0, 2))).toISOString();
+  let repos;
+  if (listed) {
+    repos = listed.filter((r) => r.createdAt <= until && r.pushedAt >= since);
+  } else {
+    const to = new Date(Math.min(nowMs, Date.UTC(year, 11, 31, 23, 59, 59))).toISOString();
+    const data = await gql(env, REPOS, { from: new Date(Date.UTC(year, 0, 1)).toISOString(), to });
+    repos = data.viewer.contributionsCollection.commitContributionsByRepository.map((c) => c.repository);
+  }
+  repos = repos.filter((r) => owners.has(r.owner.login.toLowerCase()) && r.defaultBranchRef && !hide.has(r.name.toLowerCase()));
   const out = [];
   const read = []; // the owner of each project in out
   let complete = true;
@@ -102,19 +108,26 @@ async function readYear(env, owners, who, year, nowMs) {
       read.push(r.owner.login.toLowerCase());
     }
   }
-  return { repos: out, complete, found: repos.map((r) => r.owner.login.toLowerCase()), read };
+  return { repos: out, complete, read };
 }
 
-const ORG = `query($login: String!) { organization(login: $login) { repositories(first: 1) { totalCount } } }`;
+const ORG_REPOS = `query($login: String!, $after: String) { organization(login: $login) {
+  repositories(first: ${PAGE}, after: $after) { pageInfo { hasNextPage endCursor } nodes {
+    name owner { login } primaryLanguage { name } defaultBranchRef { name } createdAt pushedAt
+  } }
+} }`;
 
-// What an organisation's token can see, as counts only, so a log can say why its projects are missing.
-async function probe(env, login) {
-  try {
-    const n = (await gql(env, ORG, { login })).organization?.repositories?.totalCount ?? 0;
-    return `the token sees ${n} of its repositories`;
-  } catch (err) {
-    return `the token can't see it (${err.message})`;
-  }
+// Every repository of an organisation the token can see.
+async function orgRepos(env, login) {
+  const all = [];
+  let after = null;
+  do {
+    const page = (await gql(env, ORG_REPOS, { login, after })).organization?.repositories;
+    if (!page) break;
+    all.push(...page.nodes.filter((r) => r.pushedAt));
+    after = page.pageInfo.hasNextPage ? page.pageInfo.endCursor : null;
+  } while (after);
+  return all;
 }
 
 // Past years don't change, so each is read once and kept; the current year is read every run.
@@ -128,17 +141,20 @@ export async function fetchGitHub(env, cache = {}, nowMs = Date.now()) {
   const passes = [{ env, owners: new Set([who.login.toLowerCase()]) }];
   if (orgs(env).length) passes.push({ env: { ...env, COSMOS_GITHUB_TOKEN: env.COSMOS_GITHUB_ORG_TOKEN || env.COSMOS_GITHUB_TOKEN }, owners: new Set(orgs(env)) });
   const current = Number(local(nowMs).date.slice(0, 4));
+  let listed = null; // the organisations' repositories, listed once per run
   const readAll = async (y) => {
     const out = { repos: [], complete: true };
     for (const p of passes) {
       try {
-        const r = await readYear(p.env, p.owners, who, y, nowMs);
+        if (p.env !== env && !listed) listed = (await Promise.all([...p.owners].map((o) => orgRepos(p.env, o)))).flat();
+        const r = await readYear(p.env, p.owners, who, y, nowMs, p.env === env ? null : listed);
         out.repos.push(...r.repos);
         out.complete &&= r.complete;
         if (p.env !== env && y === current) {
           for (const o of p.owners) {
             const count = (l) => l.filter((x) => x === o).length;
-            console.log(`code: ${o}, ${await probe(p.env, o)}; ${count(r.found)} with her commits on the default branch this year, ${count(r.read)} read`);
+            const seen = listed.filter((x) => x.owner.login.toLowerCase() === o).length;
+            console.log(`code: ${o}, the token sees ${seen} of its repositories; ${count(r.read)} with her commits this year`);
           }
         }
       } catch (err) {
