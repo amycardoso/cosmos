@@ -2,8 +2,11 @@
 // The job keeps when she committed (day and hour) and in which of her own projects;
 // it never keeps commit messages, code, or counts of commits, pull requests or stars.
 //
-// Projects are the repositories she owns. Organisations (work) are left out, and any
-// repository named in COSMOS_GITHUB_HIDE (comma separated) is too.
+// Projects are the repositories she owns, plus those of the organisations named in
+// COSMOS_GITHUB_ORGS (her own, like reformasimples). Other organisations (work) are left
+// out, and any repository named in COSMOS_GITHUB_HIDE (comma separated) is too.
+// A fine-grained token reaches one owner only, so the organisations are read with
+// COSMOS_GITHUB_ORG_TOKEN when it is set.
 import { clocks } from './aggregate.js';
 import { local, dayIndex } from './time.js';
 
@@ -45,6 +48,10 @@ const HISTORY = `query($owner: String!, $name: String!, $author: ID!, $since: Gi
   } } } }
 }`;
 
+const list = (v) => String(v || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+export const orgs = (env) => [...new Set(list(env.COSMOS_GITHUB_ORGS))].sort();
+// What a cached year was read under: a change in either list reads the years again.
+export const settings = (env) => `${[...hidden(env)].sort().join(',')}|${orgs(env).join(',')}`;
 export const hidden = (env) => new Set(String(env.COSMOS_GITHUB_HIDE || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean));
 
 // One year as raw material: each of her projects with the hours she committed in, each hour
@@ -52,13 +59,13 @@ export const hidden = (env) => new Set(String(env.COSMOS_GITHUB_HIDE || '').spli
 // `complete` is false when a repository couldn't be read, so the year is read again next run.
 // GitHub caps a contributions window at a year, so the window is the UTC year; a commit
 // late on 31 December in São Paulo is still found through its repository's history.
-async function readYear(env, who, year, nowMs) {
+async function readYear(env, owners, who, year, nowMs) {
   const to = new Date(Math.min(nowMs, Date.UTC(year, 11, 31, 23, 59, 59))).toISOString();
   const data = await gql(env, REPOS, { from: new Date(Date.UTC(year, 0, 1)).toISOString(), to });
   const hide = hidden(env);
   const repos = data.viewer.contributionsCollection.commitContributionsByRepository
     .map((c) => c.repository)
-    .filter((r) => r.owner.login.toLowerCase() === who.login.toLowerCase() && r.defaultBranchRef && !hide.has(r.name.toLowerCase()));
+    .filter((r) => owners.has(r.owner.login.toLowerCase()) && r.defaultBranchRef && !hide.has(r.name.toLowerCase()));
   // Local year bounds, with a day's margin either side; the views keep only this year's local days.
   const since = new Date(Date.UTC(year, 0, 1) - 86400000).toISOString();
   const until = new Date(Math.min(nowMs, Date.UTC(year + 1, 0, 2))).toISOString();
@@ -95,13 +102,31 @@ async function readYear(env, who, year, nowMs) {
 export async function fetchGitHub(env, cache = {}, nowMs = Date.now()) {
   const who = (await gql(env, VIEWER)).viewer;
   const hide = hidden(env);
-  const hideKey = [...hide].sort().join(',');
+  const hideKey = settings(env);
+  // Her own repositories with her token; her organisations with theirs, when there is one.
+  const passes = [{ env, owners: new Set([who.login.toLowerCase()]) }];
+  if (orgs(env).length) passes.push({ env: { ...env, COSMOS_GITHUB_TOKEN: env.COSMOS_GITHUB_ORG_TOKEN || env.COSMOS_GITHUB_TOKEN }, owners: new Set(orgs(env)) });
+  const readAll = async (y) => {
+    const out = { repos: [], complete: true };
+    for (const p of passes) {
+      try {
+        const r = await readYear(p.env, p.owners, who, y, nowMs);
+        out.repos.push(...r.repos);
+        out.complete &&= r.complete;
+      } catch (err) {
+        if (p.env === env) throw err; // her own token failing fails the source, as before
+        console.log(`code: organisations not read (${err.message})`);
+        out.complete = false;
+      }
+    }
+    return out;
+  };
   const current = Number(local(nowMs).date.slice(0, 4));
   const years = {};
   const next = {};
   for (const y of who.contributionsCollection.contributionYears) {
     const done = cache[y] && cache[y].at > Date.UTC(y + 1, 0, 2) && y < current && (cache[y].hide || '') === hideKey;
-    const read = done ? { repos: cache[y].repos, complete: true } : await readYear(env, who, y, nowMs);
+    const read = done ? { repos: cache[y].repos, complete: true } : await readAll(y);
     // A year with a repository that failed to read is kept for now but never counted as done.
     next[y] = { at: done ? cache[y].at : read.complete ? nowMs : 0, hide: hideKey, repos: read.repos };
     years[y] = read.repos;

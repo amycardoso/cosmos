@@ -15,7 +15,7 @@ import { withSkoob } from './skoob.js';
 import { connections } from './connections.js';
 import { archive } from './archive.js';
 import { fetchGenres, family } from './genres.js';
-import { fetchGitHub, code } from './github.js';
+import { fetchGitHub, code, settings } from './github.js';
 
 const env = process.env;
 const has = (...keys) => keys.every((k) => env[k]);
@@ -159,10 +159,10 @@ export async function main() {
     await state.put('github-years', fetched.cache);
     // The first local year comes from the earliest commit: a UTC year can start on her 31 December.
     const first = Object.values(fetched.years).flat().reduce((m, r) => Math.min(m, r.times[0] ?? Infinity), Infinity);
-    return { hide: env.COSMOS_GITHUB_HIDE || '', years: each(Number.isFinite(first) ? first : now, (s) => code(fetched.years, s)) };
+    return { hide: settings(env), years: each(Number.isFinite(first) ? first : now, (s) => code(fetched.years, s)) };
   }, state, span);
-  // A last good read made before a repository was hidden would still show it.
-  if (create.data && (create.data.hide || '') !== (env.COSMOS_GITHUB_HIDE || '')) create.data = null;
+  // A last good read made before a repository was hidden, or an organisation added, would be wrong.
+  if (create.data && (create.data.hide || '') !== settings(env)) create.data = null;
 
   const years = [...new Set([read, listen, watch, create].flatMap((x) => Object.keys(x.data?.years || {}).map(Number)).concat(span.year))].sort((a, b) => b - a);
   const pick = (x, y) => ({ ...x, data: x.data?.years?.[y] || null });
