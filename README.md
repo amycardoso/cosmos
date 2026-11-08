@@ -1,13 +1,14 @@
 # Cosmos
 
-A private site with my year in reading, music, and series and films, in the colours of Hubble's ultraviolet Jupiter.
+A private site with my year in reading, music, series and films, and the code I make, in the colours of Hubble's ultraviolet Jupiter.
 
-![The site with sample data: Jupiter turning, the three day-by-day belts lighting up the same day, the period switch, the constellation linking books to the music and shows around them, the shared hours grid, each book's soundtrack, and the music and screens sections](docs/cosmos.gif)
+![The site with sample data: Jupiter turning, the four day-by-day belts lighting up the same day, the year and period switches, the constellation linking books and projects to the music and shows around them while the nebula lights up behind each star, the shared hours grid, each book's soundtrack, the music page and its ten years, the screens page and the code page](docs/cosmos.gif)
 
-<sub>Recorded with the sample data in `site/data/cosmos.js`.</sub>
+<sub>Recorded with the sample data in `site/data/cosmos.js`, with three years listed so the year switch shows.</sub>
 
-- `site/`: the site itself (plain HTML, CSS and JS), in four pages: `index.html` (the year at a glance and the connections), `leitura.html`, `musica.html` and `telas.html`. Open any of them to see it with sample data.
+- `site/`: the site itself (plain HTML, CSS and JS), in five pages: `index.html` (the year at a glance and the connections), `leitura.html`, `musica.html`, `telas.html` and `codigo.html`. Open any of them to see it with sample data. Every page takes `?ano=2024` to show a past year instead (`year.js` loads that year's data).
 - `site/data/cosmos.js` and `site/data/archive.js`: sample data in the exact shape the job produces. Nothing in them is real.
+- `site/img/`: Jupiter, which turns on every page, and the nebula behind the constellation, drawn for this site in the same palette.
 - `job/`: the scheduled job that reads the real sources and builds the site.
 - `DESIGN.md`: the visual system. `PRODUCT.md`: what the site is and who it is for.
 - `archive/webb/`: the first version, built around James Webb nebulae, kept for reference (without its images).
@@ -19,10 +20,10 @@ Every three hours, `.github/workflows/deploy.yml` runs `npm run build`, which:
 1. downloads KOReader's `statistics.sqlite3` from WebDAV (KOReader's own statistics cloud sync puts it there) and turns it into the Reading Atlas views: time per day, the hours grid, the shelf, the library by language and each book's fingerprint. Covers come from Open Library (Google Books as a fallback), downloaded at build time and served from the site itself;
 2. asks Spotify for the latest plays and adds them to a history the job keeps, because Spotify only remembers the last 50;
 3. mirrors the Bingers library through `/v1/entries` and its change cursor, plus the library and the season of each show in progress;
-4. reads my own GitHub repositories through the GraphQL API (`contributionsCollection`, then each repository's history): only the days and hours I committed, which project and its language. No commit messages, no code, no counts of commits or pull requests, and nothing from organisations. Past years are read once and kept;
-5. crosses the three timelines: what played on Spotify while each book was open, how much of each book was read in silence, and which shows shared their weeks with a book. Only those links reach the site, never the raw plays or sessions;
+4. reads my GitHub repositories through the GraphQL API (`contributionsCollection`, then each repository's history): only the days and hours I committed, which project and its language. No commit messages, no code, no counts of commits or pull requests. Organisations are left out, except the ones of my own named in `COSMOS_GITHUB_ORGS`, whose repositories are listed and searched for my commits. Past years are read once and kept;
+5. crosses the timelines: what played on Spotify while each book was open or each project was being made, how much of each book was read in silence, and which shows shared their weeks with a book or a project. Only those links reach the site, never the raw plays or sessions;
 6. sums up the whole Spotify history for the music page's "Dez anos" (artists year by year, genres, obsessions, skips, this day in past years, first listens). Genres come from MusicBrainz, since Spotify no longer fills them in for most artists: each run looks up about 50 more artists, most listened first, and keeps the answers;
-7. writes `dist/` with the real data in `dist/data/cosmos.js` (and the music page's long view in `dist/data/archive.js`), and deploys it to Cloudflare Pages.
+7. writes `dist/` with the real data in `dist/data/cosmos.js`, one `dist/data/cosmos-YYYY.js` for each earlier year any source has something in (the whole year, with the shelf and library as they stood at its end), and the music page's long view in `dist/data/archive.js`, and deploys it to Cloudflare Pages.
 
 If one source fails, the site keeps that source's last good read and says so in the footer.
 
@@ -39,6 +40,16 @@ rm current.json.gz history.json.gz skips.json.gz
 ```
 
 The export replaces whatever the job kept up to its last play, so importing a newer export later works the same way. Podcasts, audiobooks and plays under 30 seconds are left out of the history. Skips only exist in the export, so the import counts them once into `spotify-skips`, and the page shows them as of the export's last day.
+
+### Books read elsewhere
+
+Books finished outside KOReader come from Skoob's "Lidos" shelf, which has no public API. Its pages are saved as JSON from my logged-in browser and turned, on my own computer, into the list the build adds to each year's shelf:
+
+```sh
+npm run skoob-import -- skoob-read.json.gz page1.json page2.json
+npx wrangler kv key put skoob-read --namespace-id <id> --remote --path skoob-read.json.gz
+rm skoob-read.json.gz page*.json
+```
 
 ### Seeding the genres
 
@@ -60,7 +71,7 @@ The repository is public; the data is not.
 
 - Tokens live only in GitHub Actions secrets.
 - The data never touches the repository: the job deploys straight to Cloudflare, uploads no artifacts and prints nothing but which sources worked.
-- What has to survive between runs (the Spotify history and skips, the artists' genres, the Bingers mirror, each source's last good read) lives in a Cloudflare KV namespace.
+- What has to survive between runs (the Spotify history and skips, the artists' genres, the Bingers mirror, the books from Skoob, the covers, the past years of GitHub, each source's last good read) lives in a Cloudflare KV namespace.
 - The site sits behind Cloudflare Access, so only the people I allow can open it.
 
 ## Setup
