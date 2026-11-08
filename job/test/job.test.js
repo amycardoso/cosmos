@@ -416,12 +416,19 @@ test('github: her organisations are read with their own token, others stay out',
       const list = token === 'org' ? [repo('constructus', 'reformasimples'), repo('cht-core', 'medic')] : [repo('cosmos', 'amycardoso'), repo('cht-core', 'medic')];
       return reply({ viewer: { contributionsCollection: { commitContributionsByRepository: list } } });
     }
+    if (query.includes('organization(')) return reply({ organization: { repositories: { totalCount: token === 'org' ? 3 : 0 } } });
     seen.push(`${token}:${variables.owner}/${variables.name}`);
     return reply({ repository: { defaultBranchRef: { target: { history: { pageInfo: { hasNextPage: false }, nodes: [{ authoredDate: '2026-10-10T12:00:00Z' }] } } } } });
   };
   try {
     const env = { COSMOS_GITHUB_TOKEN: 'me', COSMOS_GITHUB_ORG_TOKEN: 'org', COSMOS_GITHUB_ORGS: 'ReformaSimples' };
-    const got = await fetchGitHub(env, {}, NOW);
+    const said = [];
+    const log0 = console.log;
+    console.log = (m) => said.push(String(m));
+    let got;
+    try { got = await fetchGitHub(env, {}, NOW); } finally { console.log = log0; }
+    // The log says what the organisation's token sees, as counts only.
+    assert.deepEqual(said, ['code: reformasimples, the token sees 3 of its repositories; 1 with her commits on the default branch this year, 1 read']);
     assert.deepEqual(got.years[2026].map((r) => r.name).sort(), ['constructus', 'cosmos']);
     assert.deepEqual(seen.sort(), ['me:amycardoso/cosmos', 'org:reformasimples/constructus']);
     assert.equal(settings(env), '|reformasimples');
@@ -430,6 +437,28 @@ test('github: her organisations are read with their own token, others stay out',
     const partial = await fetchGitHub({ ...env, COSMOS_GITHUB_ORG_TOKEN: 'bad' }, {}, NOW);
     assert.deepEqual(partial.years[2026].map((r) => r.name), ['cosmos']);
     assert.equal(partial.cache[2026].at, 0);
+    // A token pasted with other lines is refused without reaching fetch, and never echoed.
+    const logs = [];
+    const auth = [];
+    const log = console.log;
+    const inner = globalThis.fetch;
+    console.log = (m) => logs.push(String(m));
+    globalThis.fetch = async (url, opts) => { auth.push(opts.headers.Authorization); return inner(url, opts); };
+    try {
+      for (const bad of ['org\nsome other line', 'org with\tspaces', '   ']) {
+        const pasted = await fetchGitHub({ ...env, COSMOS_GITHUB_ORG_TOKEN: bad }, {}, NOW);
+        assert.deepEqual(pasted.years[2026].map((r) => r.name), ['cosmos']);
+      }
+    } finally {
+      console.log = log;
+      globalThis.fetch = inner;
+    }
+    assert.ok(auth.every((a) => a === 'Bearer me'), 'a bad organisation token never reaches fetch');
+    assert.ok(logs.some((l) => l.includes('spaces or line breaks')));
+    assert.ok(!logs.some((l) => /other line|with\tspaces/.test(l)));
+    // Surrounding whitespace, as a paste leaves it, is fine.
+    const spaced = await fetchGitHub({ ...env, COSMOS_GITHUB_TOKEN: ' me\n' }, {}, NOW);
+    assert.ok(spaced.years[2026].some((r) => r.name === 'cosmos'));
   } finally {
     globalThis.fetch = real;
   }

@@ -14,10 +14,15 @@ const API = 'https://api.github.com/graphql';
 const PAGE = 100;
 
 export async function gql(env, query, variables) {
+  // A token pasted with more than itself would end up, whole, in fetch's error message,
+  // and the logs are public: refuse it here and say so without echoing it.
+  const token = String(env.COSMOS_GITHUB_TOKEN || '').trim();
+  if (!token) throw new Error('the token is empty; set the secret again with only the token');
+  if (/\s/.test(token)) throw new Error('the token has spaces or line breaks in it; set the secret again with only the token');
   for (let attempt = 0; attempt < 3; attempt++) {
     const res = await fetch(API, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${env.COSMOS_GITHUB_TOKEN}`, 'Content-Type': 'application/json', 'User-Agent': 'cosmos-job' },
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'User-Agent': 'cosmos-job' },
       body: JSON.stringify({ query, variables }),
     });
     if (res.status === 502 || res.status === 503) {
@@ -70,6 +75,7 @@ async function readYear(env, owners, who, year, nowMs) {
   const since = new Date(Date.UTC(year, 0, 1) - 86400000).toISOString();
   const until = new Date(Math.min(nowMs, Date.UTC(year + 1, 0, 2))).toISOString();
   const out = [];
+  const read = []; // the owner of each project in out
   let complete = true;
   for (const r of repos) {
     const times = [];
@@ -91,9 +97,24 @@ async function readYear(env, owners, who, year, nowMs) {
       complete = false;
       continue;
     }
-    if (times.length) out.push({ name: r.name, lang: r.primaryLanguage?.name || null, times: [...new Set(times)].sort((a, b) => a - b) });
+    if (times.length) {
+      out.push({ name: r.name, lang: r.primaryLanguage?.name || null, times: [...new Set(times)].sort((a, b) => a - b) });
+      read.push(r.owner.login.toLowerCase());
+    }
   }
-  return { repos: out, complete };
+  return { repos: out, complete, found: repos.map((r) => r.owner.login.toLowerCase()), read };
+}
+
+const ORG = `query($login: String!) { organization(login: $login) { repositories(first: 1) { totalCount } } }`;
+
+// What an organisation's token can see, as counts only, so a log can say why its projects are missing.
+async function probe(env, login) {
+  try {
+    const n = (await gql(env, ORG, { login })).organization?.repositories?.totalCount ?? 0;
+    return `the token sees ${n} of its repositories`;
+  } catch (err) {
+    return `the token can't see it (${err.message})`;
+  }
 }
 
 // Past years don't change, so each is read once and kept; the current year is read every run.
@@ -106,6 +127,7 @@ export async function fetchGitHub(env, cache = {}, nowMs = Date.now()) {
   // Her own repositories with her token; her organisations with theirs, when there is one.
   const passes = [{ env, owners: new Set([who.login.toLowerCase()]) }];
   if (orgs(env).length) passes.push({ env: { ...env, COSMOS_GITHUB_TOKEN: env.COSMOS_GITHUB_ORG_TOKEN || env.COSMOS_GITHUB_TOKEN }, owners: new Set(orgs(env)) });
+  const current = Number(local(nowMs).date.slice(0, 4));
   const readAll = async (y) => {
     const out = { repos: [], complete: true };
     for (const p of passes) {
@@ -113,6 +135,12 @@ export async function fetchGitHub(env, cache = {}, nowMs = Date.now()) {
         const r = await readYear(p.env, p.owners, who, y, nowMs);
         out.repos.push(...r.repos);
         out.complete &&= r.complete;
+        if (p.env !== env && y === current) {
+          for (const o of p.owners) {
+            const count = (l) => l.filter((x) => x === o).length;
+            console.log(`code: ${o}, ${await probe(p.env, o)}; ${count(r.found)} with her commits on the default branch this year, ${count(r.read)} read`);
+          }
+        }
       } catch (err) {
         if (p.env === env) throw err; // her own token failing fails the source, as before
         console.log(`code: organisations not read (${err.message})`);
@@ -121,7 +149,6 @@ export async function fetchGitHub(env, cache = {}, nowMs = Date.now()) {
     }
     return out;
   };
-  const current = Number(local(nowMs).date.slice(0, 4));
   const years = {};
   const next = {};
   for (const y of who.contributionsCollection.contributionYears) {
