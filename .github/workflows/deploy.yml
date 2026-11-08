@@ -43,6 +43,8 @@ jobs:
           BINGERS_TOKEN: ${{ secrets.BINGERS_TOKEN }}
           COSMOS_GITHUB_TOKEN: ${{ secrets.COSMOS_GITHUB_TOKEN }}
           COSMOS_GITHUB_HIDE: ${{ vars.COSMOS_GITHUB_HIDE }}
+          COSMOS_GITHUB_ORGS: ${{ vars.COSMOS_GITHUB_ORGS }}
+          COSMOS_GITHUB_ORG_TOKEN: ${{ secrets.COSMOS_GITHUB_ORG_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           COSMOS_KV_NAMESPACE: ${{ secrets.COSMOS_KV_NAMESPACE }}

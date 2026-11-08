@@ -401,6 +401,40 @@ test('connections: an artist heard for a few seconds is not part of the soundtra
   assert.deepEqual(c.soundtracks.Duna.artists, []);
 });
 
+test('github: her organisations are read with their own token, others stay out', async () => {
+  const { fetchGitHub, settings } = await import('../src/github.js');
+  const real = globalThis.fetch;
+  const reply = (data) => ({ ok: true, status: 200, json: async () => ({ data }) });
+  const seen = [];
+  globalThis.fetch = async (url, { headers, body }) => {
+    const { query, variables } = JSON.parse(body);
+    const token = headers.Authorization.split(' ')[1];
+    if (query.includes('contributionYears')) return reply({ viewer: { id: 'U', login: 'amycardoso', contributionsCollection: { contributionYears: [2026] } } });
+    if (query.includes('commitContributionsByRepository')) {
+      const repo = (name, owner) => ({ repository: { name, owner: { login: owner }, primaryLanguage: { name: 'Dart' }, defaultBranchRef: { name: 'main' } } });
+      // Each token sees what it can reach.
+      const list = token === 'org' ? [repo('constructus', 'reformasimples'), repo('cht-core', 'medic')] : [repo('cosmos', 'amycardoso'), repo('cht-core', 'medic')];
+      return reply({ viewer: { contributionsCollection: { commitContributionsByRepository: list } } });
+    }
+    seen.push(`${token}:${variables.owner}/${variables.name}`);
+    return reply({ repository: { defaultBranchRef: { target: { history: { pageInfo: { hasNextPage: false }, nodes: [{ authoredDate: '2026-10-10T12:00:00Z' }] } } } } });
+  };
+  try {
+    const env = { COSMOS_GITHUB_TOKEN: 'me', COSMOS_GITHUB_ORG_TOKEN: 'org', COSMOS_GITHUB_ORGS: 'ReformaSimples' };
+    const got = await fetchGitHub(env, {}, NOW);
+    assert.deepEqual(got.years[2026].map((r) => r.name).sort(), ['constructus', 'cosmos']);
+    assert.deepEqual(seen.sort(), ['me:amycardoso/cosmos', 'org:reformasimples/constructus']);
+    assert.equal(settings(env), '|reformasimples');
+    // Without the organisation's token, its read fails quietly and her own projects stay.
+    globalThis.fetch = ((inner) => async (url, opts) => (opts.headers.Authorization.endsWith(' bad') ? { ok: false, status: 401, json: async () => ({}) } : inner(url, opts)))(globalThis.fetch);
+    const partial = await fetchGitHub({ ...env, COSMOS_GITHUB_ORG_TOKEN: 'bad' }, {}, NOW);
+    assert.deepEqual(partial.years[2026].map((r) => r.name), ['cosmos']);
+    assert.equal(partial.cache[2026].at, 0);
+  } finally {
+    globalThis.fetch = real;
+  }
+});
+
 test('connections: what played in the hours she made a project', async () => {
   const { connections } = await import('../src/connections.js');
   const t = (iso) => Date.parse(iso);
